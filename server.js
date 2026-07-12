@@ -4,9 +4,18 @@ require("dotenv").config()
 const bookingRoutes = require("./routes/bookingRoutes")
 const authRoutes = require("./routes/authRoutes")
 const adminRoutes = require("./routes/adminRoutes")
+
+const API =
+    import.meta.env.VITE_API_URL;
 const app = express()
 
-app.use(cors())
+app.use(cors({
+    origin: [
+        "http://localhost:5173", // Local React app
+        "https://servoracare.vercel.app/" // Replace after deploying to Vercel
+    ],
+    credentials: true
+}));
 app.use(express.json())
 
 app.use("/api", bookingRoutes)
