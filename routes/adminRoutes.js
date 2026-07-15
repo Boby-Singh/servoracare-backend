@@ -115,20 +115,23 @@ router.post(
 router.put(
     "/assign-technician/:id",
     (req, res) => {
+        console.log(req.params.id);
+        console.log(req.body);
 
-        const bookingId =
-            req.params.id
+        const bookingId = req.params.id;
 
         const {
-            technician_id
-        } = req.body
+            technician_id,
+            visit_date,
+            visit_time
+        } = req.body;
 
         const checkTechSql = `
-      SELECT id
-      FROM users
-      WHERE id = ?
-      AND role = 'technician'
-    `
+        SELECT id
+        FROM users
+        WHERE id = ?
+        AND role = 'technician'
+        `;
 
         db.query(
             checkTechSql, [technician_id],
@@ -136,59 +139,64 @@ router.put(
 
                 if (err) {
 
-                    console.log(err)
+                    console.log(err);
 
                     return res.status(500).json({
                         message: "Server Error"
-                    })
+                    });
 
                 }
 
-                if (
-                    techResult.length === 0
-                ) {
+                if (techResult.length === 0) {
 
                     return res.status(404).json({
                         message: "Technician Not Found"
-                    })
+                    });
 
                 }
 
                 const sql = `
-          UPDATE bookings
-          SET technician_id = ?
-          WHERE id = ?
-        `
+                UPDATE bookings
+                SET
+                    technician_id = ?,
+                    visit_date = ?,
+                    visit_time = ?,
+                    status = 'Accepted',
+                    accepted_at = NOW()
+                WHERE id = ?
+                `;
 
                 db.query(
                     sql, [
                         technician_id,
+                        visit_date,
+                        visit_time,
                         bookingId
                     ],
-                    (err, result) => {
+                    (err) => {
 
                         if (err) {
 
-                            console.log(err)
+                            console.log(err);
 
                             return res.status(500).json({
                                 message: "Assignment Failed"
-                            })
+                            });
 
                         }
 
                         res.json({
                             message: "Technician Assigned Successfully"
-                        })
+                        });
 
                     }
-                )
+                );
 
             }
-        )
+        );
 
     }
-)
+);
 
 // =========================
 // GET CUSTOMERS
