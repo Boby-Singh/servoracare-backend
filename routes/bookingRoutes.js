@@ -39,17 +39,18 @@ router.post("/book-service", (req, res) => {
         full_name,
         phone,
         address,
-        service_type
+        service_type,
+        amount
     } = req.body
 
     const sql = `
     INSERT INTO bookings
-    (user_id, full_name, phone, address, service_type)
-    VALUES (?, ?, ?, ?, ?)
+    (user_id, full_name, phone, address, service_type, amount)
+    VALUES (?, ?, ?, ?, ?, ?)
     `
 
     db.query(
-        sql, [user_id, full_name, phone, address, service_type],
+        sql, [user_id, full_name, phone, address, service_type, amount],
         (err, result) => {
 
             if (err) {
