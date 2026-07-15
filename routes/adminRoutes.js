@@ -115,8 +115,6 @@ router.post(
 router.put(
     "/assign-technician/:id",
     (req, res) => {
-        console.log(req.params.id);
-        console.log(req.body);
 
         const bookingId = req.params.id;
 

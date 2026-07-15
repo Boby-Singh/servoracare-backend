@@ -7,30 +7,30 @@ router.post("/create-payment", async(req, res) => {
 
     try {
 
-        const { bookingId, amount } = req.body
+        const { bookingId, amount } = req.body;
 
-        const upiId = "yourupi@axl"
+        const upiId = "7828908522@axl"; // Replace with your actual UPI ID
 
         const paymentUrl =
-            `upi://pay?pa=${upiId}&pn=ServoCare&am=${amount}&cu=INR`
+            `upi://pay?pa=${upiId}&pn=ServoraCare&am=${amount}&cu=INR`;
 
         res.json({
             success: true,
             redirectUrl: paymentUrl
-        })
+        });
 
     } catch (error) {
 
-        console.log(error)
+        console.log(error);
 
         res.status(500).json({
             success: false,
             message: "Payment creation failed"
-        })
+        });
 
     }
 
-})
+});
 
 router.post("/book-service", (req, res) => {
 
