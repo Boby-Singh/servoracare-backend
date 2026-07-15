@@ -173,22 +173,20 @@ router.put(
                         visit_time,
                         bookingId
                     ],
-                    (err) => {
+                    (err, result) => {
 
                         if (err) {
-
                             console.log(err);
-
                             return res.status(500).json({
                                 message: "Assignment Failed"
                             });
-
                         }
+
+                        console.log("UPDATE RESULT:", result);
 
                         res.json({
                             message: "Technician Assigned Successfully"
                         });
-
                     }
                 );
 
