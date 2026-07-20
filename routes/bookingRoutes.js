@@ -12,7 +12,11 @@ router.post("/create-payment", async(req, res) => {
         const upiId = "7828908522@axl";
 
         const paymentUrl =
-            `upi://pay?pa=${upiId}&pn=ServoraCare&am=${amount}&cu=INR`;
+            `upi://pay?pa=${encodeURIComponent(upiId)}
+            &pn=${encodeURIComponent("ServoraCare")}
+            &tn=${encodeURIComponent("Service Booking")}
+            &am=${amount}
+            &cu=INR`;
 
         res.json({
             success: true,
