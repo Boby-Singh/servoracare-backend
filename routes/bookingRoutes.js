@@ -9,23 +9,20 @@ router.post("/create-payment", async(req, res) => {
 
         const { bookingId, amount } = req.body;
 
-        const upiId = "7828908522@axl"; // Replace with your actual UPI ID
+        const upiId = "7828908522@axl";
 
         const paymentUrl =
             `upi://pay?pa=${upiId}&pn=ServoraCare&am=${amount}&cu=INR`;
 
         res.json({
             success: true,
-            redirectUrl: paymentUrl
+            paymentUrl
         });
 
-    } catch (error) {
-
-        console.log(error);
+    } catch (err) {
 
         res.status(500).json({
-            success: false,
-            message: "Payment creation failed"
+            success: false
         });
 
     }
