@@ -4,13 +4,13 @@ require("dotenv").config()
 const bookingRoutes = require("./routes/bookingRoutes")
 const authRoutes = require("./routes/authRoutes")
 const adminRoutes = require("./routes/adminRoutes")
+const jobRoutes = require("./routes/jobRoutes");
 
 
 const app = express()
 
 app.use(cors({
     origin: [
-        "http://localhost:5173",
         "https://servoracare.vercel.app" // Replace after deploying to Vercel
     ],
     credentials: true,
@@ -22,6 +22,11 @@ app.use(express.json())
 app.use("/api", bookingRoutes)
 app.use("/api/auth", authRoutes)
 app.use("/api/admin", adminRoutes)
+app.use("/api", jobRoutes);
+app.use(
+    "/uploads",
+    express.static("uploads")
+);
 app.get("/", (req, res) => {
     res.send("ServoraCare API Running")
 })
