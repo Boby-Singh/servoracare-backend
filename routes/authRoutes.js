@@ -175,39 +175,57 @@ router.post("/login", (req, res) => {
 
 router.post("/forgot-password", async(req, res) => {
 
-    const { email } = req.body;
+    try {
 
-    const [user] = await db.query(
-        "SELECT * FROM users WHERE email=?", [email]
-    );
+        const { email } = req.body;
 
-    if (user.length === 0) {
-        return res.json({
-            success: false,
-            message: "Email not registered"
+        const [user] = await db.query(
+            "SELECT * FROM users WHERE email=?", [email]
+        );
+
+        if (user.length === 0) {
+            return res.json({
+                success: false,
+                message: "Email not registered"
+            });
+        }
+
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        const expiry = new Date(Date.now() + 10 * 60 * 1000);
+
+
+        await db.query(
+            "INSERT INTO password_resets(email, otp, expires_at) VALUES(?,?,?)", [email, otp, expiry]
+        );
+
+
+        await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: "ServoraCare Password Reset",
+            text: `Your OTP is ${otp}. It is valid for 10 minutes.`,
         });
+
+
+        res.json({
+            success: true,
+            message: "OTP sent successfully"
+        });
+
+
+    } catch (error) {
+
+        console.log("Forgot password error:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            error: error.message
+        });
+
     }
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    const expiry = new Date(Date.now() + 10 * 60 * 1000);
-
-    await db.query(
-        "INSERT INTO password_resets(email,otp,expires_at) VALUES(?,?,?)", [email, otp, expiry]
-    );
-
-    // Send Email Here
-    await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "ServoraCare Password Reset",
-        text: `Your OTP is ${otp}. It is valid for 10 minutes.`,
-    });
-
-    res.json({
-        success: true,
-        message: "OTP sent successfully"
-    });
 
 });
 
