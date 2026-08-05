@@ -281,4 +281,32 @@ router.get(
     }
 )
 
+
+// Get All Bookings
+router.get("/all-bookings", async(req, res) => {
+    try {
+        const [rows] = await db.query(`
+      SELECT
+        id,
+        full_name,
+        phone,
+        address,
+        service_type,
+        amount,
+        status,
+        created_at
+      FROM bookings
+      ORDER BY created_at DESC
+    `);
+
+        res.status(200).json(rows);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            message: "Failed to fetch bookings",
+        });
+    }
+});
+
 module.exports = router

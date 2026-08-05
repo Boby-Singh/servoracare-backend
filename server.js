@@ -22,7 +22,7 @@ app.use(express.json())
 app.use("/api", bookingRoutes)
 app.use("/api/auth", authRoutes)
 app.use("/api/admin", adminRoutes)
-app.use("/api", jobRoutes);
+app.use("/api", jobRoutes); // Apply Job
 app.use(
     "/uploads",
     express.static("uploads")

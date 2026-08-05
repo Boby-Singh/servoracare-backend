@@ -76,7 +76,7 @@ router.get("/all-bookings", (req, res) => {
     const sql = `
     SELECT
       bookings.*,
-      users.name AS technician_name
+      users.name AS technician_name 
     FROM bookings
     LEFT JOIN users
       ON bookings.technician_id = users.id
