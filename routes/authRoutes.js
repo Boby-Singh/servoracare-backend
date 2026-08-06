@@ -218,6 +218,8 @@ router.post("/forgot-password", async(req, res) => {
         console.log("PASSWORD EXISTS:", !!process.env.EMAIL_PASSWORD);
         console.log("Generated OTP:", otp);
 
+        console.log("Using transporter");
+
 
         // Send email
         try {
