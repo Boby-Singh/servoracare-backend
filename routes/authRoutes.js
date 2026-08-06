@@ -199,17 +199,15 @@ router.post("/forgot-password", async(req, res) => {
         await db.query(
             "INSERT INTO password_resets(email, otp, expires_at) VALUES(?,?,?)", [email, otp, expiry]
         );
+        console.log("EMAIL:", process.env.EMAIL);
+        console.log("PASSWORD EXISTS:", !!process.env.EMAIL_PASSWORD);
 
-
-        // await transporter.sendMail({
-        //     from: process.env.EMAIL_USER,
-        //     to: email,
-        //     subject: "ServoraCare Password Reset",
-        //     text: `Your OTP is ${otp}. It is valid for 10 minutes.`,
-        // });
-
-        console.log("Generated OTP:", otp);
-
+        await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: "ServoraCare Password Reset",
+            text: `Your OTP is ${otp}. It is valid for 10 minutes.`,
+        });
         return res.json({
             success: true,
             message: "OTP generated successfully"
@@ -274,36 +272,24 @@ router.post("/verify-otp", async(req, res) => {
             "SELECT * FROM password_resets WHERE email=? AND otp=? ORDER BY id DESC LIMIT 1", [email, otp]
         );
 
-
-        console.log("OTP DATA:", data);
-
-
         if (!data) {
             return res.json({
                 success: false,
                 message: "Invalid OTP"
             });
         }
-
-
         if (new Date() > new Date(data.expires_at)) {
             return res.json({
                 success: false,
                 message: "OTP Expired"
             });
         }
-
-
         res.json({
             success: true,
             message: "OTP verified"
         });
 
-
     } catch (error) {
-
-        console.log("Verify OTP Error:", error);
-
         res.status(500).json({
             success: false,
             message: "Server error"
