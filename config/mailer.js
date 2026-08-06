@@ -57,7 +57,7 @@ const transporter = nodemailer.createTransport({
 
     secure: true,
 
-    family: 4, // Force IPv4
+    family: 4,
 
     auth: {
         user: process.env.EMAIL,
@@ -67,7 +67,7 @@ const transporter = nodemailer.createTransport({
 });
 
 
-transporter.verify((error, success) => {
+transporter.verify((error) => {
 
     if (error) {
         console.log("SMTP ERROR:", error);
