@@ -278,7 +278,7 @@ router.post("/verify-otp", async(req, res) => {
         console.log("OTP DATA:", data);
 
 
-        if (!data || data.length === 0) {
+        if (!data) {
             return res.json({
                 success: false,
                 message: "Invalid OTP"
@@ -286,18 +286,7 @@ router.post("/verify-otp", async(req, res) => {
         }
 
 
-        const resetData = data[0];
-
-
-        if (!resetData.expires_at) {
-            return res.json({
-                success: false,
-                message: "OTP expiry missing in database"
-            });
-        }
-
-
-        if (new Date() > new Date(resetData.expires_at)) {
+        if (new Date() > new Date(data.expires_at)) {
             return res.json({
                 success: false,
                 message: "OTP Expired"
@@ -305,7 +294,7 @@ router.post("/verify-otp", async(req, res) => {
         }
 
 
-        return res.json({
+        res.json({
             success: true,
             message: "OTP verified"
         });
