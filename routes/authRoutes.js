@@ -179,9 +179,12 @@ router.post("/forgot-password", async(req, res) => {
 
         const { email } = req.body;
 
+
+        // Check user exists
         const [user] = await db.query(
-            "SELECT * FROM users WHERE email=?", [email]
+            "SELECT id FROM users WHERE email=?", [email]
         );
+
 
         if (user.length === 0) {
             return res.json({
@@ -191,43 +194,81 @@ router.post("/forgot-password", async(req, res) => {
         }
 
 
+        // Generate OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
+
+        // OTP expiry (10 minutes)
         const expiry = new Date(Date.now() + 10 * 60 * 1000);
 
 
+        // Remove old OTPs
+        await db.query(
+            "DELETE FROM password_resets WHERE email=?", [email]
+        );
+
+
+        // Save new OTP
         await db.query(
             "INSERT INTO password_resets(email, otp, expires_at) VALUES(?,?,?)", [email, otp, expiry]
         );
+
+
         console.log("EMAIL:", process.env.EMAIL);
         console.log("PASSWORD EXISTS:", !!process.env.EMAIL_PASSWORD);
+        console.log("Generated OTP:", otp);
 
-        await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: "ServoraCare Password Reset",
-            text: `Your OTP is ${otp}. It is valid for 10 minutes.`,
-        });
+
+        // Send email
+        try {
+
+            await transporter.sendMail({
+
+                from: process.env.EMAIL,
+
+                to: email,
+
+                subject: "ServoraCare Password Reset OTP",
+
+                text: `Your ServoraCare password reset OTP is ${otp}. It is valid for 10 minutes.`
+
+            });
+
+
+            console.log("OTP EMAIL SENT SUCCESSFULLY");
+
+
+        } catch (mailError) {
+
+            console.log("MAIL ERROR:", mailError);
+
+            return res.status(500).json({
+                success: false,
+                message: "Failed to send OTP email"
+            });
+
+        }
+
+
         return res.json({
-            success: true,
-            message: "OTP generated successfully"
-        });
 
-
-        res.json({
             success: true,
+
             message: "OTP sent successfully"
+
         });
 
 
     } catch (error) {
 
-        console.log("Forgot password error:", error.stack);
+        console.log("Forgot password error:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
+
             success: false,
-            message: "Server error",
-            error: error.message
+
+            message: "Server error"
+
         });
 
     }
