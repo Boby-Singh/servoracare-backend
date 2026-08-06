@@ -201,11 +201,18 @@ router.post("/forgot-password", async(req, res) => {
         );
 
 
-        await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: "ServoraCare Password Reset",
-            text: `Your OTP is ${otp}. It is valid for 10 minutes.`,
+        // await transporter.sendMail({
+        //     from: process.env.EMAIL_USER,
+        //     to: email,
+        //     subject: "ServoraCare Password Reset",
+        //     text: `Your OTP is ${otp}. It is valid for 10 minutes.`,
+        // });
+
+        console.log("Generated OTP:", otp);
+
+        return res.json({
+            success: true,
+            message: "OTP generated successfully"
         });
 
 
