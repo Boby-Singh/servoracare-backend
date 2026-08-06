@@ -236,31 +236,91 @@ router.post("/forgot-password", async(req, res) => {
 
 });
 
+// router.post("/verify-otp", async(req, res) => {
+
+//     const { email, otp } = req.body;
+
+//     const [data] = await db.query(
+//         "SELECT * FROM password_resets WHERE email=? AND otp=? ORDER BY id DESC LIMIT 1", [email, otp]
+//     );
+
+//     if (data.length === 0) {
+//         return res.json({
+//             success: false,
+//             message: "Invalid OTP"
+//         });
+//     }
+
+//     if (new Date() > new Date(data[0].expires_at)) {
+//         return res.json({
+//             success: false,
+//             message: "OTP Expired"
+//         });
+//     }
+
+//     res.json({
+//         success: true
+//     });
+
+// });
+
 router.post("/verify-otp", async(req, res) => {
 
-    const { email, otp } = req.body;
+    try {
 
-    const [data] = await db.query(
-        "SELECT * FROM password_resets WHERE email=? AND otp=? ORDER BY id DESC LIMIT 1", [email, otp]
-    );
+        const { email, otp } = req.body;
 
-    if (data.length === 0) {
+        const [data] = await db.query(
+            "SELECT * FROM password_resets WHERE email=? AND otp=? ORDER BY id DESC LIMIT 1", [email, otp]
+        );
+
+
+        console.log("OTP DATA:", data);
+
+
+        if (!data || data.length === 0) {
+            return res.json({
+                success: false,
+                message: "Invalid OTP"
+            });
+        }
+
+
+        const resetData = data[0];
+
+
+        if (!resetData.expires_at) {
+            return res.json({
+                success: false,
+                message: "OTP expiry missing in database"
+            });
+        }
+
+
+        if (new Date() > new Date(resetData.expires_at)) {
+            return res.json({
+                success: false,
+                message: "OTP Expired"
+            });
+        }
+
+
         return res.json({
-            success: false,
-            message: "Invalid OTP"
+            success: true,
+            message: "OTP verified"
         });
-    }
 
-    if (new Date() > new Date(data[0].expires_at)) {
-        return res.json({
+
+    } catch (error) {
+
+        console.log("Verify OTP Error:", error);
+
+        res.status(500).json({
             success: false,
-            message: "OTP Expired"
+            message: "Server error"
         });
-    }
 
-    res.json({
-        success: true
-    });
+    }
 
 });
 
