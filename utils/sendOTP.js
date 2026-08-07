@@ -1,48 +1,45 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 
-const transporter = nodemailer.createTransport({
+async function sendOTP(email, otp) {
 
-    service: "gmail",
+    try {
 
-    auth: {
-        user: "bobysinghsaini236@gmail.com",
-        pass: process.env.GMAIL_APP_PASSWORD
+        const data = await resend.emails.send({
+
+            from: process.env.EMAIL_FROM,
+
+            to: email,
+
+            subject: "ServoraCare Password Reset OTP",
+
+            html: `
+                <h2>ServoraCare</h2>
+
+                <p>Your OTP for password reset is:</p>
+
+                <h1>${otp}</h1>
+
+                <p>This OTP expires in 5 minutes.</p>
+            `
+        });
+
+
+        console.log("RESEND SUCCESS:", data);
+
+        return true;
+
+
+    } catch (error) {
+
+        console.log("RESEND EMAIL ERROR:", error);
+
+        return false;
     }
 
-});
-
-
-const sendOTP = async(email, otp) => {
-
-    await transporter.sendMail({
-
-        from: {
-            name: "ServoraCare",
-            address: "bobysinghsaini236@gmail.com"
-        },
-
-        to: email,
-
-        subject: "ServoraCare OTP Verification",
-
-        html: `
-            <h2>ServoraCare</h2>
-
-            <p>Your OTP for password reset is:</p>
-
-            <h1>${otp}</h1>
-
-            <p>This OTP is valid for 5 minutes.</p>
-
-            <br>
-
-            <p>Regards,<br>
-            ServoraCare Team</p>
-        `
-    });
-
-};
+}
 
 
 module.exports = sendOTP;
