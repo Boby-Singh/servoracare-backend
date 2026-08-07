@@ -276,11 +276,11 @@ router.post("/verify-otp", async(req, res) => {
 
 
         const [rows] = await db.query(
-            `SELECT * FROM password_resets 
-             WHERE email=? AND otp=? 
-             ORDER BY id DESC 
-             LIMIT 1`, [email, otp]
+            "SELECT * FROM password_resets WHERE email=? AND otp=? ORDER BY id DESC LIMIT 1", [email, otp]
         );
+
+        console.log("ROWS VALUE:", rows);
+        console.log("ROWS LENGTH:", rows.length);
 
 
         if (rows.length === 0) {
