@@ -220,6 +220,12 @@ router.post("/forgot-password", async(req, res) => {
             VALUES (?, ?, ?)`, [email, otp, mysqlExpiry]
         );
 
+        console.log("OTP SAVED:", {
+            email,
+            otp,
+            expires: mysqlExpiry
+        });
+
         // Send OTP email using Resend
         try {
 
@@ -267,6 +273,7 @@ router.post("/verify-otp", async(req, res) => {
 
         const { email, otp } = req.body;
 
+
         if (!email || !otp) {
             return res.status(400).json({
                 success: false,
@@ -275,15 +282,18 @@ router.post("/verify-otp", async(req, res) => {
         }
 
 
-        const [rows] = await db.query(
-            "SELECT * FROM password_resets WHERE email=? AND otp=? ORDER BY id DESC LIMIT 1", [email, otp]
+        const [data] = await db.query(
+            `SELECT * FROM password_resets 
+             WHERE email=? AND otp=? 
+             ORDER BY id DESC 
+             LIMIT 1`, [email, otp]
         );
 
-        console.log("ROWS VALUE:", rows);
-        console.log("ROWS LENGTH:", rows.length);
+
+        console.log("OTP DATA:", data);
 
 
-        if (rows.length === 0) {
+        if (!data) {
             return res.json({
                 success: false,
                 message: "Invalid OTP"
@@ -291,13 +301,7 @@ router.post("/verify-otp", async(req, res) => {
         }
 
 
-        const resetData = rows[0];
-
-
-        console.log("OTP DATA:", resetData);
-
-
-        if (!resetData.expires_at) {
+        if (!data.expires_at) {
             return res.json({
                 success: false,
                 message: "Invalid OTP record"
@@ -305,7 +309,7 @@ router.post("/verify-otp", async(req, res) => {
         }
 
 
-        if (new Date() > new Date(resetData.expires_at)) {
+        if (new Date() > new Date(data.expires_at)) {
 
             return res.json({
                 success: false,
@@ -333,7 +337,6 @@ router.post("/verify-otp", async(req, res) => {
     }
 
 });
-
 
 router.post("/reset-password", async(req, res) => {
 
