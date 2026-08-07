@@ -1,6 +1,7 @@
 const express = require("express")
 const router = express.Router()
-const sendOTP = require("../config/email");
+    // const sendOTP = require("../config/email");
+const sendOTP = require("../utils/sendOTP");
 const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
 
@@ -196,16 +197,15 @@ router.post("/forgot-password", async(req, res) => {
             100000 + Math.random() * 900000
         ).toString();
 
-        // OTP expires after 10 minutes
+        // OTP expires after 5 minutes
         const expiry = new Date(
-            Date.now() + 10 * 60 * 1000
+            Date.now() + 5 * 60 * 1000
         );
 
 
         const mysqlExpiry =
             `${expiry.getFullYear()}-${String(expiry.getMonth()+1).padStart(2,"0")}-${String(expiry.getDate()).padStart(2,"0")} ${String(expiry.getHours()).padStart(2,"0")}:${String(expiry.getMinutes()).padStart(2,"0")}:${String(expiry.getSeconds()).padStart(2,"0")}`;
 
-        console.log("Generated OTP:", otp);
 
         // Remove previous OTP
         await db.query(
