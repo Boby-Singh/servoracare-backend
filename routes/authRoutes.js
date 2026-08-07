@@ -267,28 +267,45 @@ router.post("/verify-otp", async(req, res) => {
 
         const { email, otp } = req.body;
 
+        if (!email || !otp) {
+            return res.status(400).json({
+                success: false,
+                message: "Email and OTP are required"
+            });
+        }
+
 
         const [rows] = await db.query(
-            "SELECT * FROM password_resets WHERE email=? AND otp=? ORDER BY id DESC LIMIT 1", [email, otp]
+            `SELECT * FROM password_resets 
+             WHERE email=? AND otp=? 
+             ORDER BY id DESC 
+             LIMIT 1`, [email, otp]
         );
 
 
-        // No OTP found
         if (rows.length === 0) {
-
             return res.json({
                 success: false,
                 message: "Invalid OTP"
             });
-
         }
 
 
-        const data = rows[0];
+        const resetData = rows[0];
 
 
-        // Check OTP expiry
-        if (new Date() > new Date(data.expires_at)) {
+        console.log("OTP DATA:", resetData);
+
+
+        if (!resetData.expires_at) {
+            return res.json({
+                success: false,
+                message: "Invalid OTP record"
+            });
+        }
+
+
+        if (new Date() > new Date(resetData.expires_at)) {
 
             return res.json({
                 success: false,
