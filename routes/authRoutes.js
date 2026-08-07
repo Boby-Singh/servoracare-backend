@@ -179,12 +179,10 @@ router.post("/forgot-password", async(req, res) => {
 
         const { email } = req.body;
 
-
-        // Check user exists
+        // Check user
         const [user] = await db.query(
             "SELECT id FROM users WHERE email=?", [email]
         );
-
 
         if (user.length === 0) {
             return res.json({
@@ -193,52 +191,29 @@ router.post("/forgot-password", async(req, res) => {
             });
         }
 
-
         // Generate OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otp = Math.floor(
+            100000 + Math.random() * 900000
+        ).toString();
 
-
-        // OTP expiry (10 minutes)
-        const expiry = new Date(Date.now() + 10 * 60 * 1000);
-
-
-        // Remove old OTPs
-        await db.query(
-            "DELETE FROM password_resets WHERE email=?", [email]
+        // Expiry: 10 minutes
+        const expiry = new Date(
+            Date.now() + 10 * 60 * 1000
         );
 
-
-        // Save new OTP
-        await db.query(
-            "INSERT INTO password_resets(email, otp, expires_at) VALUES(?,?,?)", [email, otp, expiry]
-        );
-
-
-        console.log("EMAIL:", process.env.EMAIL);
-        console.log("PASSWORD EXISTS:", !!process.env.EMAIL_PASSWORD);
         console.log("Generated OTP:", otp);
 
-        console.log("Using transporter");
-
-
-        // Send email
+        // Send email FIRST
         try {
 
             await transporter.sendMail({
-
                 from: process.env.EMAIL,
-
                 to: email,
-
                 subject: "ServoraCare Password Reset OTP",
-
                 text: `Your ServoraCare password reset OTP is ${otp}. It is valid for 10 minutes.`
-
             });
 
-
             console.log("OTP EMAIL SENT SUCCESSFULLY");
-
 
         } catch (mailError) {
 
@@ -248,35 +223,35 @@ router.post("/forgot-password", async(req, res) => {
                 success: false,
                 message: "Failed to send OTP email"
             });
-
         }
 
+        // Delete old OTP
+        await db.query(
+            "DELETE FROM password_resets WHERE email=?", [email]
+        );
+
+        // Save new OTP
+        await db.query(
+            `INSERT INTO password_resets
+            (email, otp, expires_at)
+            VALUES (?, ?, ?)`, [email, otp, expiry]
+        );
 
         return res.json({
-
             success: true,
-
             message: "OTP sent successfully"
-
         });
-
 
     } catch (error) {
 
         console.log("Forgot password error:", error);
 
         return res.status(500).json({
-
             success: false,
-
             message: "Server error"
-
         });
-
     }
-
 });
-
 // router.post("/verify-otp", async(req, res) => {
 
 //     const { email, otp } = req.body;
