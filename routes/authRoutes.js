@@ -1,6 +1,6 @@
 const express = require("express")
 const router = express.Router()
-const transporter = require("../config/mailer");
+const sendOTP = require("../config/email");
 const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
 
@@ -179,9 +179,9 @@ router.post("/forgot-password", async(req, res) => {
 
         const { email } = req.body;
 
-        // Check user
+        // Check user exists
         const [user] = await db.query(
-            "SELECT id FROM users WHERE email=?", [email]
+            "SELECT id FROM users WHERE email = ?", [email]
         );
 
         if (user.length === 0) {
@@ -191,25 +191,21 @@ router.post("/forgot-password", async(req, res) => {
             });
         }
 
-        // Generate OTP
+        // Generate 6-digit OTP
         const otp = Math.floor(
             100000 + Math.random() * 900000
         ).toString();
 
-        // Expiry: 10 minutes
+        // OTP expires after 10 minutes
         const expiry = new Date(
             Date.now() + 10 * 60 * 1000
         );
 
         console.log("Generated OTP:", otp);
 
-        const sendOTP = require("../config/email");
-
-        await sendOTP(email, otp);
-
-        // Delete old OTP
+        // Remove previous OTP
         await db.query(
-            "DELETE FROM password_resets WHERE email=?", [email]
+            "DELETE FROM password_resets WHERE email = ?", [email]
         );
 
         // Save new OTP
@@ -218,6 +214,28 @@ router.post("/forgot-password", async(req, res) => {
             (email, otp, expires_at)
             VALUES (?, ?, ?)`, [email, otp, expiry]
         );
+
+        // Send OTP email using Resend
+        try {
+
+            await sendOTP(email, otp);
+
+            console.log("OTP EMAIL SENT SUCCESSFULLY");
+
+        } catch (emailError) {
+
+            console.log("RESEND EMAIL ERROR:", emailError);
+
+            // Remove OTP because email was not sent
+            await db.query(
+                "DELETE FROM password_resets WHERE email = ?", [email]
+            );
+
+            return res.status(500).json({
+                success: false,
+                message: "Failed to send OTP email"
+            });
+        }
 
         return res.json({
             success: true,
@@ -232,7 +250,9 @@ router.post("/forgot-password", async(req, res) => {
             success: false,
             message: "Server error"
         });
+
     }
+
 });
 // router.post("/verify-otp", async(req, res) => {
 
