@@ -2,22 +2,27 @@ const { Resend } = require("resend");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+const sendOTP = async(email, otp) => {
 
-async function sendOTP(email, otp) {
-
-    await resend.emails.send({
+    const { data, error } = await resend.emails.send({
 
         from: "ServoraCare <onboarding@resend.dev>",
 
-        to: email,
+        to: [email],
 
         subject: "ServoraCare Password Reset OTP",
 
-        text: `Your OTP is ${otp}. It is valid for 10 minutes.`
+        text: `Your ServoraCare password reset OTP is ${otp}. It is valid for 10 minutes.`
 
     });
 
-}
+    if (error) {
+        throw new Error(error.message);
+    }
 
+    console.log("OTP EMAIL SENT:", data ? .id);
+
+    return data;
+};
 
 module.exports = sendOTP;

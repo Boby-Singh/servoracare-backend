@@ -203,27 +203,9 @@ router.post("/forgot-password", async(req, res) => {
 
         console.log("Generated OTP:", otp);
 
-        // Send email FIRST
-        try {
+        const sendOTP = require("../config/email");
 
-            await transporter.sendMail({
-                from: process.env.EMAIL,
-                to: email,
-                subject: "ServoraCare Password Reset OTP",
-                text: `Your ServoraCare password reset OTP is ${otp}. It is valid for 10 minutes.`
-            });
-
-            console.log("OTP EMAIL SENT SUCCESSFULLY");
-
-        } catch (mailError) {
-
-            console.log("MAIL ERROR:", mailError);
-
-            return res.status(500).json({
-                success: false,
-                message: "Failed to send OTP email"
-            });
-        }
+        await sendOTP(email, otp);
 
         // Delete old OTP
         await db.query(
