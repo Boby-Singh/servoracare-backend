@@ -197,7 +197,7 @@ router.post("/forgot-password", async(req, res) => {
             100000 + Math.random() * 900000
         ).toString();
 
-        // OTP expires after 5 minutes
+        // OTP expires after 5 minutes 
         const expiry = new Date(
             Date.now() + 5 * 60 * 1000
         );
@@ -274,41 +274,50 @@ router.post("/verify-otp", async(req, res) => {
 
 
         if (!email || !otp) {
+
             return res.status(400).json({
                 success: false,
                 message: "Email and OTP are required"
             });
+
         }
 
 
-        const [data] = await db.query(
-            `SELECT * FROM password_resets 
-             WHERE email=? AND otp=? 
-             ORDER BY id DESC 
+        const [rows] = await db.query(
+            `SELECT * FROM password_resets
+             WHERE email=? AND otp=?
+             ORDER BY id DESC
              LIMIT 1`, [email, otp]
         );
 
 
-        console.log("OTP DATA:", data);
+        console.log("OTP DATA:", rows);
 
 
-        if (!data) {
+        if (rows.length === 0) {
+
             return res.json({
                 success: false,
                 message: "Invalid OTP"
             });
+
         }
 
 
-        if (!data.expires_at) {
+        const otpData = rows[0];
+
+
+        if (!otpData.expires_at) {
+
             return res.json({
                 success: false,
                 message: "Invalid OTP record"
             });
+
         }
 
 
-        if (new Date() > new Date(data.expires_at)) {
+        if (new Date() > new Date(otpData.expires_at)) {
 
             return res.json({
                 success: false,
@@ -319,18 +328,26 @@ router.post("/verify-otp", async(req, res) => {
 
 
         return res.json({
+
             success: true,
+
             message: "OTP verified"
+
         });
 
 
     } catch (error) {
 
+
         console.log("Verify OTP Error:", error);
 
+
         return res.status(500).json({
+
             success: false,
+
             message: "Server error"
+
         });
 
     }
