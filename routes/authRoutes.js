@@ -201,6 +201,11 @@ router.post("/forgot-password", async(req, res) => {
             Date.now() + 10 * 60 * 1000
         );
 
+        const mysqlExpiry = expiry
+            .toISOString()
+            .slice(0, 19)
+            .replace("T", " ");
+
         console.log("Generated OTP:", otp);
 
         // Remove previous OTP
@@ -212,7 +217,7 @@ router.post("/forgot-password", async(req, res) => {
         await db.query(
             `INSERT INTO password_resets
             (email, otp, expires_at)
-            VALUES (?, ?, ?)`, [email, otp, expiry]
+            VALUES (?, ?, ?)`, [email, otp, mysqlExpiry]
         );
 
         // Send OTP email using Resend
@@ -254,33 +259,7 @@ router.post("/forgot-password", async(req, res) => {
     }
 
 });
-// router.post("/verify-otp", async(req, res) => {
 
-//     const { email, otp } = req.body;
-
-//     const [data] = await db.query(
-//         "SELECT * FROM password_resets WHERE email=? AND otp=? ORDER BY id DESC LIMIT 1", [email, otp]
-//     );
-
-//     if (data.length === 0) {
-//         return res.json({
-//             success: false,
-//             message: "Invalid OTP"
-//         });
-//     }
-
-//     if (new Date() > new Date(data[0].expires_at)) {
-//         return res.json({
-//             success: false,
-//             message: "OTP Expired"
-//         });
-//     }
-
-//     res.json({
-//         success: true
-//     });
-
-// });
 
 router.post("/verify-otp", async(req, res) => {
 
@@ -288,29 +267,48 @@ router.post("/verify-otp", async(req, res) => {
 
         const { email, otp } = req.body;
 
-        const [data] = await db.query(
+
+        const [rows] = await db.query(
             "SELECT * FROM password_resets WHERE email=? AND otp=? ORDER BY id DESC LIMIT 1", [email, otp]
         );
 
-        if (!data) {
+
+        // No OTP found
+        if (rows.length === 0) {
+
             return res.json({
                 success: false,
                 message: "Invalid OTP"
             });
+
         }
+
+
+        const data = rows[0];
+
+
+        // Check OTP expiry
         if (new Date() > new Date(data.expires_at)) {
+
             return res.json({
                 success: false,
                 message: "OTP Expired"
             });
+
         }
-        res.json({
+
+
+        return res.json({
             success: true,
             message: "OTP verified"
         });
 
+
     } catch (error) {
-        res.status(500).json({
+
+        console.log("Verify OTP Error:", error);
+
+        return res.status(500).json({
             success: false,
             message: "Server error"
         });
@@ -318,6 +316,7 @@ router.post("/verify-otp", async(req, res) => {
     }
 
 });
+
 
 router.post("/reset-password", async(req, res) => {
 

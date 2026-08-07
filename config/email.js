@@ -16,14 +16,21 @@ const sendOTP = async(email, otp) => {
 
     });
 
+
     if (error) {
+
         console.log("RESEND ERROR:", error);
+
         throw new Error(error.message);
+
     }
 
-    console.log("OTP EMAIL SENT:", data ? .id);
+
+    console.log("RESEND SUCCESS:", data);
 
     return data;
+
 };
+
 
 module.exports = sendOTP;
