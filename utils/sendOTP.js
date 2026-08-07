@@ -7,11 +7,27 @@ const transporter = nodemailer.createTransport({
 
     port: Number(process.env.SMTP_PORT),
 
-    secure: false, // 587 = false, 465 = true
+    secure: false, // port 587
 
     auth: {
         user: process.env.SMTP_EMAIL,
         pass: process.env.GMAIL_APP_PASSWORD
+    },
+
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000
+
+});
+
+
+// Check SMTP connection
+transporter.verify((error, success) => {
+
+    if (error) {
+        console.log("SMTP CONNECTION ERROR:", error.message);
+    } else {
+        console.log("SMTP SERVER READY");
     }
 
 });
@@ -29,21 +45,19 @@ const sendOTP = async(email, otp) => {
 
             subject: "ServoraCare Password Reset OTP",
 
-            text: `
-Your ServoraCare password reset OTP is ${otp}.
+            text: `Your ServoraCare password reset OTP is ${otp}.
 
-This OTP is valid for 5 minutes.
-            `,
+This OTP is valid for 5 minutes.`,
 
             html: `
-                <h2>ServoraCare Password Reset</h2>
+<h2>ServoraCare Password Reset</h2>
 
-                <p>Your OTP is:</p>
+<p>Your OTP is:</p>
 
-                <h1>${otp}</h1>
+<h1>${otp}</h1>
 
-                <p>This OTP is valid for 5 minutes.</p>
-            `
+<p>This OTP is valid for 5 minutes.</p>
+`
 
         });
 
@@ -55,7 +69,7 @@ This OTP is valid for 5 minutes.
 
     } catch (error) {
 
-        console.log("EMAIL ERROR:", error.message);
+        console.log("EMAIL ERROR:", error);
 
         throw error;
 
