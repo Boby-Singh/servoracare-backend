@@ -201,10 +201,9 @@ router.post("/forgot-password", async(req, res) => {
             Date.now() + 10 * 60 * 1000
         );
 
-        const mysqlExpiry = expiry
-            .toISOString()
-            .slice(0, 19)
-            .replace("T", " ");
+
+        const mysqlExpiry =
+            `${expiry.getFullYear()}-${String(expiry.getMonth()+1).padStart(2,"0")}-${String(expiry.getDate()).padStart(2,"0")} ${String(expiry.getHours()).padStart(2,"0")}:${String(expiry.getMinutes()).padStart(2,"0")}:${String(expiry.getSeconds()).padStart(2,"0")}`;
 
         console.log("Generated OTP:", otp);
 
