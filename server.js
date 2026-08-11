@@ -12,6 +12,7 @@ const app = express()
 
 app.use(cors({
     origin: [
+        "https://www.servoracare.in/",
         "https://servoracare.vercel.app" // Replace after deploying to Vercel
     ],
     credentials: true,
