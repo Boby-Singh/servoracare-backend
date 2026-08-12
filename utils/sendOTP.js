@@ -1,81 +1,50 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
-
-const transporter = nodemailer.createTransport({
-
-    host: process.env.SMTP_HOST,
-
-    port: Number(process.env.SMTP_PORT),
-
-    secure: false, // port 587
-
-    auth: {
-        user: process.env.SMTP_EMAIL,
-        pass: process.env.GMAIL_APP_PASSWORD
-    },
-
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000
-
-});
-
-
-// Check SMTP connection
-transporter.verify((error, success) => {
-
-    if (error) {
-        console.log("SMTP CONNECTION ERROR:", error.message);
-    } else {
-        console.log("SMTP SERVER READY");
-    }
-
-});
-
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendOTP = async(email, otp) => {
-
     try {
-
-        const info = await transporter.sendMail({
-
-            from: `"ServoraCare" <${process.env.SMTP_EMAIL}>`,
-
-            to: email,
-
+        const { data, error } = await resend.emails.send({
+            from: `ServoraCare <${process.env.EMAIL_FROM}>`,
+            to: [email],
             subject: "ServoraCare Password Reset OTP",
 
-            text: `Your ServoraCare password reset OTP is ${otp}.
-
-This OTP is valid for 5 minutes.`,
-
             html: `
-<h2>ServoraCare Password Reset</h2>
+                <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto;">
+                    <h2>ServoraCare</h2>
 
-<p>Your OTP is:</p>
+                    <p>Your OTP for password reset is:</p>
 
-<h1>${otp}</h1>
+                    <h1 style="letter-spacing: 8px; text-align: center;">
+                        ${otp}
+                    </h1>
 
-<p>This OTP is valid for 5 minutes.</p>
-`
+                    <p>This OTP is valid for <strong>5 minutes</strong>.</p>
 
+                    <p>If you did not request this OTP, please ignore this email.</p>
+
+                    <hr>
+
+                    <p style="font-size: 12px; color: gray;">
+                        © ServoraCare
+                    </p>
+                </div>
+            `
         });
 
+        if (error) {
+            console.error("RESEND ERROR:", error);
+            throw error;
+        }
 
-        console.log("EMAIL SENT:", info.messageId);
+        console.log("RESEND SUCCESS:", data);
 
-        return info;
-
+        return data;
 
     } catch (error) {
-
-        console.log("EMAIL ERROR:", error);
-
+        console.error("EMAIL ERROR:", error);
         throw error;
-
     }
-
 };
-
 
 module.exports = sendOTP;

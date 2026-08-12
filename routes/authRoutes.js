@@ -180,6 +180,13 @@ router.post("/forgot-password", async(req, res) => {
 
         const { email } = req.body;
 
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: "Email is required"
+            });
+        }
+
         // Check user exists
         const [user] = await db.query(
             "SELECT id FROM users WHERE email = ?", [email]
@@ -267,112 +274,124 @@ router.post("/forgot-password", async(req, res) => {
 
 
 router.post("/verify-otp", async(req, res) => {
-
     try {
-
         const { email, otp } = req.body;
 
-
         if (!email || !otp) {
-
             return res.status(400).json({
                 success: false,
                 message: "Email and OTP are required"
             });
-
         }
 
-
         const [rows] = await db.query(
-            `SELECT * FROM password_resets
-             WHERE email=? AND otp=?
+            `SELECT *
+             FROM password_resets
+             WHERE email = ?
+             AND otp = ?
+             AND expires_at > NOW()
              ORDER BY id DESC
              LIMIT 1`, [email, otp]
         );
 
-
         console.log("OTP DATA:", rows);
 
-
         if (rows.length === 0) {
-
             return res.json({
                 success: false,
-                message: "Invalid OTP"
+                message: "Invalid or expired OTP"
             });
-
         }
 
-
-        const otpData = rows[0];
-
-
-        if (!otpData.expires_at) {
-
-            return res.json({
-                success: false,
-                message: "Invalid OTP record"
-            });
-
-        }
-
-
-        if (new Date() > new Date(otpData.expires_at)) {
-
-            return res.json({
-                success: false,
-                message: "OTP Expired"
-            });
-
-        }
-
+        // OTP is valid
+        await db.query(
+            `UPDATE password_resets
+             SET verified = 1
+             WHERE id = ?`, [rows[0].id]
+        );
 
         return res.json({
-
             success: true,
-
             message: "OTP verified"
-
         });
-
 
     } catch (error) {
-
-
         console.log("Verify OTP Error:", error);
 
-
         return res.status(500).json({
-
             success: false,
-
             message: "Server error"
-
         });
-
     }
-
 });
 
 router.post("/reset-password", async(req, res) => {
+    try {
+        const { email, password } = req.body;
 
-    const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "Email and password are required"
+            });
+        }
 
-    const hash = await bcrypt.hash(password, 10);
+        if (password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must be at least 6 characters"
+            });
+        }
 
-    await db.query(
-        "UPDATE users SET password=? WHERE email=?", [hash, email]
-    );
+        // Check that OTP was actually verified
+        const [rows] = await db.query(
+            `SELECT *
+             FROM password_resets
+             WHERE email = ?
+             AND verified = 1
+             AND expires_at > NOW()
+             ORDER BY id DESC
+             LIMIT 1`, [email]
+        );
 
-    await db.query(
-        "DELETE FROM password_resets WHERE email=?", [email]
-    );
+        if (rows.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "OTP verification required"
+            });
+        }
 
-    res.json({
-        success: true,
-        message: "Password Updated"
-    });
+        // Hash new password
+        const hash = await bcrypt.hash(password, 10);
 
+        // Update password
+        await db.query(
+            "UPDATE users SET password = ? WHERE email = ?", [hash, email]
+        );
+
+        // Delete reset record
+        await db.query(
+            "DELETE FROM password_resets WHERE email = ?", [email]
+        );
+
+        return res.json({
+            success: true,
+            message: "Password updated successfully"
+        });
+
+    } catch (error) {
+        console.log("Reset Password Error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
 });
 
 module.exports = router
+
+
+
+// ALTER TABLE password_resets
+// ADD COLUMN verified TINYINT(1) DEFAULT 0; need to add this query
