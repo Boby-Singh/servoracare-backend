@@ -1,2 +1,6 @@
-node_modules/
 .env
+.env.*
+atlas-credentials.env
+node_modules/
+Database.docx
+routes/text.txt
