@@ -1,10 +1,14 @@
 const express = require("express");
 const router = express.Router();
-const multer = require("multer");
-const path = require("path");
-const db = require("../config/db");
 
-// Storage
+const multer = require("multer");
+const mongoose = require("mongoose");
+
+const JobApplication = require("../models/JobApplication");
+
+// ==========================================
+// MULTER STORAGE
+// ==========================================
 
 const storage = multer.diskStorage({
 
@@ -13,81 +17,57 @@ const storage = multer.diskStorage({
     },
 
     filename: (req, file, cb) => {
+
         cb(
             null,
             Date.now() + "-" + file.originalname
         );
+
     }
 
 });
 
-const upload = multer({ storage });
+// ==========================================
+// MULTER UPLOAD
+// ==========================================
 
-// Apply Job
+const upload = multer({
+    storage: storage
+});
+
+// ==========================================
+// APPLY FOR JOB
+// ==========================================
 
 router.post(
 
     "/apply-job",
 
     upload.fields([
-        { name: "resume", maxCount: 1 },
-        { name: "aadhaar_file", maxCount: 1 },
-        { name: "photo", maxCount: 1 }
+
+        {
+            name: "resume",
+            maxCount: 1
+        },
+
+        {
+            name: "aadhaar_file",
+            maxCount: 1
+        },
+
+        {
+            name: "photo",
+            maxCount: 1
+        }
+
     ]),
 
-    (req, res) => {
+    async(req, res) => {
 
-        const {
+        try {
 
-            full_name,
-            phone,
-            email,
-            city,
-            position,
-            experience,
-            aadhaar,
-            pan
+            const {
 
-        } = req.body;
-
-        const resume =
-            req.files.resume ?
-            req.files.resume[0].filename :
-            null;
-
-        const aadhaar_file =
-            req.files.aadhaar_file ?
-            req.files.aadhaar_file[0].filename :
-            null;
-
-        const photo =
-            req.files.photo ?
-            req.files.photo[0].filename :
-            null;
-
-        const sql = `
-        INSERT INTO job_applications
-        (
-            full_name,
-            phone,
-            email,
-            city,
-            position,
-            experience,
-            aadhaar,
-            pan,
-            resume,
-            aadhaar_file,
-            photo
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-
-        db.query(
-
-            sql,
-
-            [
                 full_name,
                 phone,
                 email,
@@ -95,80 +75,267 @@ router.post(
                 position,
                 experience,
                 aadhaar,
-                pan,
-                resume,
-                aadhaar_file,
-                photo
-            ],
+                pan
 
-            (err) => {
+            } = req.body;
 
-                if (err) {
+            // ==================================
+            // VALIDATION
+            // ==================================
 
-                    console.log(err);
+            if (!full_name ||
+                !phone ||
+                !email ||
+                !city ||
+                !position
+            ) {
 
-                    return res.status(500).json({
-                        success: false,
-                        message: "Database Error"
-                    });
+                return res.status(400).json({
 
-                }
+                    success: false,
 
-                res.json({
-                    success: true,
-                    message: "Application Submitted Successfully"
+                    message: "Required fields are missing"
+
                 });
 
             }
 
-        );
+            // ==================================
+            // FILE NAMES
+            // ==================================
+
+            const resume =
+                req.files && req.files.resume ?
+                req.files.resume[0].filename :
+                null;
+
+            const aadhaar_file =
+                req.files && req.files.aadhaar_file ?
+                req.files.aadhaar_file[0].filename :
+                null;
+
+            const photo =
+                req.files && req.files.photo ?
+                req.files.photo[0].filename :
+                null;
+
+            // ==================================
+            // CREATE JOB APPLICATION
+            // ==================================
+
+            const application =
+                await JobApplication.create({
+
+                    full_name,
+
+                    phone,
+
+                    email,
+
+                    city,
+
+                    position,
+
+                    experience,
+
+                    aadhaar,
+
+                    pan,
+
+                    resume,
+
+                    aadhaar_file,
+
+                    photo
+
+                });
+
+            // ==================================
+            // RESPONSE
+            // ==================================
+
+            res.status(201).json({
+
+                success: true,
+
+                message: "Application Submitted Successfully",
+
+                application
+
+            });
+
+        } catch (error) {
+
+            console.error(
+                "Job Application Error:",
+                error
+            );
+
+            res.status(500).json({
+
+                success: false,
+
+                message: "Database Error"
+
+            });
+
+        }
 
     }
 
 );
 
-router.get("/admin/job-applications", (req, res) => {
+// ==========================================
+// GET ALL JOB APPLICATIONS
+// ADMIN
+// ==========================================
 
-    db.query(
+router.get(
 
-        "SELECT * FROM job_applications ORDER BY created_at DESC",
+    "/admin/job-applications",
 
-        (err, result) => {
+    async(req, res) => {
 
-            if (err)
-                return res.status(500).json(err);
+        try {
 
-            res.json(result);
+            const applications =
+                await JobApplication.find()
+                .sort({
+                    created_at: -1
+                });
 
-        }
+            res.json(applications);
 
-    );
+        } catch (error) {
 
-});
+            console.error(
+                "Get Job Applications Error:",
+                error
+            );
 
-router.put("/admin/job-status/:id", (req, res) => {
+            res.status(500).json({
 
-    const { status } = req.body;
+                message: "Failed to fetch applications"
 
-    db.query(
-
-        "UPDATE job_applications SET status=? WHERE id=?",
-
-        [status, req.params.id],
-
-        (err) => {
-
-            if (err)
-                return res.status(500).json(err);
-
-            res.json({
-                message: "Status Updated"
             });
 
         }
 
-    );
+    }
 
-});
+);
+
+// ==========================================
+// UPDATE JOB APPLICATION STATUS
+// ADMIN
+// ==========================================
+
+router.put(
+
+    "/admin/job-status/:id",
+
+    async(req, res) => {
+
+        try {
+
+            const { status } = req.body;
+
+            const { id } = req.params;
+
+            // ==================================
+            // VALIDATE ID
+            // ==================================
+
+            if (!mongoose.Types.ObjectId.isValid(id)) {
+
+                return res.status(400).json({
+
+                    message: "Invalid Application ID"
+
+                });
+
+            }
+
+            // ==================================
+            // VALIDATE STATUS
+            // ==================================
+
+            if (!status) {
+
+                return res.status(400).json({
+
+                    message: "Status is required"
+
+                });
+
+            }
+
+            // ==================================
+            // UPDATE STATUS
+            // ==================================
+
+            const application =
+                await JobApplication.findByIdAndUpdate(
+
+                    id,
+
+                    {
+                        status: status
+                    },
+
+                    {
+                        new: true
+                    }
+
+                );
+
+            // ==================================
+            // APPLICATION NOT FOUND
+            // ==================================
+
+            if (!application) {
+
+                return res.status(404).json({
+
+                    message: "Application Not Found"
+
+                });
+
+            }
+
+            // ==================================
+            // RESPONSE
+            // ==================================
+
+            res.json({
+
+                message: "Status Updated",
+
+                application
+
+            });
+
+        } catch (error) {
+
+            console.error(
+                "Update Job Status Error:",
+                error
+            );
+
+            res.status(500).json({
+
+                message: "Failed to update status"
+
+            });
+
+        }
+
+    }
+
+);
+
+// ==========================================
+// EXPORT ROUTER
+// ==========================================
 
 module.exports = router;

@@ -1,7 +1,13 @@
-const express = require("express")
-const router = express.Router()
+const express = require("express");
+const router = express.Router();
 
-const db = require("../config/db")
+const Booking = require("../models/Booking");
+const User = require("../models/User");
+
+
+// ==========================================
+// CREATE PAYMENT
+// ==========================================
 
 router.post("/create-payment", async(req, res) => {
 
@@ -12,11 +18,11 @@ router.post("/create-payment", async(req, res) => {
         const upiId = "7828908522@axl";
 
         const paymentUrl =
-            `upi://pay?pa=${encodeURIComponent(upiId)}
-            &pn=${encodeURIComponent("ServoraCare")}
-            &tn=${encodeURIComponent("Service Booking")}
-            &am=${amount}
-            &cu=INR`;
+            `upi://pay?pa=${encodeURIComponent(upiId)}` +
+            `&pn=${encodeURIComponent("ServoraCare")}` +
+            `&tn=${encodeURIComponent("Service Booking")}` +
+            `&am=${amount}` +
+            `&cu=INR`;
 
         res.json({
             success: true,
@@ -25,185 +31,346 @@ router.post("/create-payment", async(req, res) => {
 
     } catch (err) {
 
+        console.error("Payment Error:", err);
+
         res.status(500).json({
-            success: false
+            success: false,
+            message: "Payment creation failed"
         });
 
     }
 
 });
 
-router.post("/book-service", (req, res) => {
 
-    const {
-        user_id,
-        full_name,
-        phone,
-        address,
-        service_type,
-        amount
-    } = req.body
+// ==========================================
+// CREATE BOOKING
+// ==========================================
 
-    const sql = `
-    INSERT INTO bookings
-    (user_id, full_name, phone, address, service_type, amount)
-    VALUES (?, ?, ?, ?, ?, ?)
-    `
+router.post("/book-service", async(req, res) => {
 
-    db.query(
-        sql, [user_id, full_name, phone, address, service_type, amount],
-        (err, result) => {
+    try {
 
-            if (err) {
-                console.log(err)
-                res.status(500).json({
-                    message: "Booking Failed"
-                })
-            } else {
-                res.status(201).json({
-                    message: "Booking Successful"
-                })
-            }
+        const {
+            user_id,
+            full_name,
+            phone,
+            address,
+            service_type,
+            amount
+        } = req.body;
 
-        }
-    )
 
-})
+        if (!user_id ||
+            !full_name ||
+            !phone ||
+            !address ||
+            !service_type ||
+            amount === undefined
+        ) {
 
-// fetch all BOOKING STATUS
-router.get("/all-bookings", (req, res) => {
-
-    const sql = `
-    SELECT
-      bookings.*,
-      users.name AS technician_name 
-    FROM bookings
-    LEFT JOIN users
-      ON bookings.technician_id = users.id
-    ORDER BY bookings.created_at DESC
-  `
-
-    db.query(sql, (err, result) => {
-
-        if (err) {
-
-            console.log(err)
-
-            return res.status(500).json({
-                message: "Server Error"
-            })
+            return res.status(400).json({
+                message: "All booking fields are required"
+            });
 
         }
 
-        res.json(result)
 
-    })
+        // Check user exists
 
-})
+        const user = await User.findById(user_id);
 
-//Technician Should See Assigned Jobs
+        if (!user) {
+
+            return res.status(404).json({
+                message: "User not found"
+            });
+
+        }
+
+
+        // Create booking
+
+        const booking = await Booking.create({
+
+            user_id: user._id,
+
+            full_name,
+
+            phone,
+
+            address,
+
+            service_type,
+
+            amount
+
+        });
+
+
+        res.status(201).json({
+
+            message: "Booking Successful",
+
+            booking
+
+        });
+
+    } catch (err) {
+
+        console.error("Booking Error:", err);
+
+        res.status(500).json({
+
+            message: "Booking Failed"
+
+        });
+
+    }
+
+});
+
+
+// ==========================================
+// GET ALL BOOKINGS
+// ==========================================
+
+router.get("/all-bookings", async(req, res) => {
+
+    try {
+
+        const bookings = await Booking.find()
+
+        .populate({
+            path: "technician_id",
+            select: "name employee_code phone"
+        })
+
+        .sort({
+            created_at: -1
+        });
+
+
+        const result = bookings.map((booking) => ({
+
+            ...booking.toObject(),
+
+            technician_name: booking.technician_id ?
+                booking.technician_id.name : null,
+
+            employee_code: booking.technician_id ?
+                booking.technician_id.employee_code : null,
+
+            technician_phone: booking.technician_id ?
+                booking.technician_id.phone : null
+
+        }));
+
+
+        res.json(result);
+
+    } catch (err) {
+
+        console.error("Get All Bookings Error:", err);
+
+        res.status(500).json({
+
+            message: "Server Error"
+
+        });
+
+    }
+
+});
+
+
+// ==========================================
+// TECHNICIAN JOBS
+// ==========================================
 
 router.get(
-        "/technician-jobs/:id",
-        (req, res) => {
+    "/technician-jobs/:id",
+    async(req, res) => {
 
-            const technicianId = req.params.id
+        try {
 
-            const sql = `
-      SELECT *
-      FROM bookings
-      WHERE technician_id = ?
-    `
+            const technicianId = req.params.id;
 
-            db.query(
-                sql, [technicianId],
-                (err, result) => {
 
-                    if (err)
-                        return res.status(500).json(err)
+            const jobs = await Booking.find({
 
-                    res.json(result)
-                }
-            )
-        }
-    )
-    // UPDATE BOOKING STATUS
-router.put("/update-status/:id", (req, res) => {
+                technician_id: technicianId
 
-    const { id } = req.params
-
-    const {
-        status,
-        technician_comment
-    } = req.body
-
-    const sql = `
-    UPDATE bookings
-    SET status = ?,
-        technician_comment = ?
-    WHERE id = ?
-  `
-
-    db.query(
-        sql, [status, technician_comment, id],
-        (err) => {
-
-            if (err) {
-                return res.status(500).json({
-                    message: "Update Failed"
-                })
-            }
-
-            res.json({
-                message: "Updated Successfully"
             })
 
-        }
-    )
+            .populate({
+                path: "user_id",
+                select: "name email phone"
+            })
 
-})
+            .sort({
+                created_at: -1
+            });
+
+
+            res.json(jobs);
+
+        } catch (err) {
+
+            console.error(
+                "Technician Jobs Error:",
+                err
+            );
+
+            res.status(500).json({
+
+                message: "Server Error"
+
+            });
+
+        }
+
+    }
+);
+
+
+// ==========================================
+// UPDATE BOOKING STATUS
+// ==========================================
+
+router.put(
+    "/update-status/:id",
+    async(req, res) => {
+
+        try {
+
+            const { id } = req.params;
+
+            const {
+                status,
+                technician_comment
+            } = req.body;
+
+
+            const booking =
+                await Booking.findByIdAndUpdate(
+
+                    id,
+
+                    {
+                        status,
+                        technician_comment
+                    },
+
+                    {
+                        new: true
+                    }
+
+                );
+
+
+            if (!booking) {
+
+                return res.status(404).json({
+
+                    message: "Booking not found"
+
+                });
+
+            }
+
+
+            res.json({
+
+                message: "Updated Successfully",
+
+                booking
+
+            });
+
+        } catch (err) {
+
+            console.error(
+                "Update Status Error:",
+                err
+            );
+
+            res.status(500).json({
+
+                message: "Update Failed"
+
+            });
+
+        }
+
+    }
+);
+
+
+// ==========================================
+// MY BOOKINGS
+// ==========================================
 
 router.get(
     "/my-bookings/:id",
-    (req, res) => {
+    async(req, res) => {
 
-        const userId = req.params.id
+        try {
 
-        const sql = `
-      SELECT
-        bookings.*,
-        users.name AS technician_name,
-        users.employee_code,
-        users.phone AS technician_phone
-      FROM bookings
-      LEFT JOIN users
-      ON bookings.technician_id = users.id
-      WHERE bookings.user_id = ?
-      ORDER BY bookings.created_at DESC
-    `
+            const userId = req.params.id;
 
-        db.query(
-            sql, [userId],
-            (err, result) => {
 
-                if (err) {
+            const bookings = await Booking.find({
 
-                    console.log(err)
+                user_id: userId
 
-                    return res.status(500).json({
-                        message: "Server Error"
-                    })
+            })
 
-                }
+            .populate({
+                path: "technician_id",
+                select: "name employee_code phone"
+            })
 
-                res.json(result)
+            .sort({
+                created_at: -1
+            });
 
-            }
-        )
+
+            const result = bookings.map((booking) => ({
+
+                ...booking.toObject(),
+
+                technician_name: booking.technician_id ?
+                    booking.technician_id.name : null,
+
+                employee_code: booking.technician_id ?
+                    booking.technician_id.employee_code : null,
+
+                technician_phone: booking.technician_id ?
+                    booking.technician_id.phone : null
+
+            }));
+
+
+            res.json(result);
+
+        } catch (err) {
+
+            console.error(
+                "My Bookings Error:",
+                err
+            );
+
+            res.status(500).json({
+
+                message: "Server Error"
+
+            });
+
+        }
 
     }
-)
+);
 
 
-
-module.exports = router
+module.exports = router;

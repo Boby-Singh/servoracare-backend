@@ -4,3 +4,4 @@ atlas-credentials.env
 node_modules/
 Database.docx
 routes/text.txt
+atlas-credentials.env
