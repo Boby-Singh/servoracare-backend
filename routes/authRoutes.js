@@ -1,178 +1,153 @@
-const express = require("express")
-const router = express.Router()
-    // const sendOTP = require("../config/email");
+const express = require("express");
+const router = express.Router();
+
 const sendOTP = require("../utils/sendOTP");
-const bcrypt = require("bcryptjs")
-const jwt = require("jsonwebtoken")
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
-const db = require("../config/db")
+const User = require("../models/User");
+const PasswordReset = require("../models/PasswordReset");
 
+
+// =====================================================
 // REGISTER USER
+// =====================================================
+
 router.post("/register", async(req, res) => {
 
     try {
 
-        const { name, email, password } = req.body
+        const { name, email, password } = req.body;
 
-        // Default role
-        const role = "customer"
-        const checkEmailSql =
-            "SELECT * FROM users WHERE email = ?"
+        if (!name || !email || !password) {
+            return res.status(400).json({
+                message: "Name, email and password are required"
+            });
+        }
 
-        db.query(
+        const normalizedEmail = email.toLowerCase().trim();
 
-            checkEmailSql,
+        // Check if user already exists
+        const existingUser = await User.findOne({
+            email: normalizedEmail
+        });
 
-            [email],
-
-            async(err, result) => {
-
-                if (result.length > 0) {
-
-                    return res.status(400).json({
-                        message: "Email Already Exists"
-                    })
-
-                }
-
-            }
-
-        )
+        if (existingUser) {
+            return res.status(400).json({
+                message: "Email Already Exists"
+            });
+        }
 
         // Hash password
-        const hashedPassword =
-            await bcrypt.hash(password, 10)
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Insert user
-        const sql = `
-      INSERT INTO users
-      (name, email, password, role)
-      VALUES (?, ?, ?, ?)
-    `
+        // Create user
+        const user = await User.create({
+            name,
+            email: normalizedEmail,
+            password: hashedPassword,
+            role: "customer"
+        });
 
-        db.query(
-
-            sql,
-
-            [name, email, hashedPassword, role],
-
-            (error, result) => {
-
-                if (error) {
-
-                    console.log(error)
-
-                    return res.status(500).json({
-                        message: "Registration Failed"
-                    })
-
-                }
-
-                res.status(201).json({
-                    message: "User Registered Successfully"
-                })
-
-            }
-
-        )
+        return res.status(201).json({
+            message: "User Registered Successfully"
+        });
 
     } catch (error) {
 
-        console.log(error)
+        console.log("Register Error:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             message: "Server Error"
-        })
-
+        });
     }
+});
 
-})
 
+// =====================================================
 // LOGIN USER
-router.post("/login", (req, res) => {
+// =====================================================
 
-    const {
-        email,
-        password
-    } = req.body
+router.post("/login", async(req, res) => {
 
-    const sql = `
-    SELECT * FROM users
-    WHERE email = ?
-  `
+    try {
 
-    db.query(sql, [email], async(err, result) => {
+        const {
+            email,
+            password
+        } = req.body;
 
-        if (err) {
-
-            console.log(err)
-
-            return res.status(500).json({
-                message: "Server Error"
-            })
-
+        if (!email || !password) {
+            return res.status(400).json({
+                message: "Email and password are required"
+            });
         }
 
-        if (result.length === 0) {
+        const normalizedEmail = email.toLowerCase().trim();
 
+        // Find user
+        const user = await User.findOne({
+            email: normalizedEmail
+        });
+
+        if (!user) {
             return res.status(401).json({
                 message: "Invalid Email"
-            })
-
+            });
         }
 
-        const user = result[0]
-
-        const isMatch =
-            await bcrypt.compare(
-                password,
-                user.password
-            )
+        // Compare password
+        const isMatch = await bcrypt.compare(
+            password,
+            user.password
+        );
 
         if (!isMatch) {
-
             return res.status(401).json({
                 message: "Invalid Password"
-            })
-
+            });
         }
 
-        const token = jwt.sign(
-
-            {
-                id: user.id,
+        // Create JWT
+        const token = jwt.sign({
+                id: user._id.toString(),
                 email: user.email,
                 role: user.role
             },
-
-            process.env.JWT_SECRET,
-
-            {
+            process.env.JWT_SECRET, {
                 expiresIn: "7d"
             }
+        );
 
-        )
-
-        res.status(200).json({
+        return res.status(200).json({
 
             message: "Login Successful",
 
             token,
 
             user: {
-
-                id: user.id,
+                id: user._id.toString(),
                 name: user.name,
                 email: user.email,
                 role: user.role
-
             }
 
-        })
+        });
 
-    })
+    } catch (error) {
 
-})
+        console.log("Login Error:", error);
+
+        return res.status(500).json({
+            message: "Server Error"
+        });
+    }
+});
+
+
+// =====================================================
+// FORGOT PASSWORD
+// =====================================================
 
 router.post("/forgot-password", async(req, res) => {
 
@@ -187,12 +162,14 @@ router.post("/forgot-password", async(req, res) => {
             });
         }
 
-        // Check user exists
-        const [user] = await db.query(
-            "SELECT id FROM users WHERE email = ?", [email]
-        );
+        const normalizedEmail = email.toLowerCase().trim();
 
-        if (user.length === 0) {
+        // Check user exists
+        const user = await User.findOne({
+            email: normalizedEmail
+        });
+
+        if (!user) {
             return res.json({
                 success: false,
                 message: "Email not registered"
@@ -204,49 +181,50 @@ router.post("/forgot-password", async(req, res) => {
             100000 + Math.random() * 900000
         ).toString();
 
-        // OTP expires after 5 minutes 
+        // OTP expires after 5 minutes
         const expiry = new Date(
             Date.now() + 5 * 60 * 1000
         );
 
-
-        const mysqlExpiry =
-            `${expiry.getFullYear()}-${String(expiry.getMonth()+1).padStart(2,"0")}-${String(expiry.getDate()).padStart(2,"0")} ${String(expiry.getHours()).padStart(2,"0")}:${String(expiry.getMinutes()).padStart(2,"0")}:${String(expiry.getSeconds()).padStart(2,"0")}`;
-
-
         // Remove previous OTP
-        await db.query(
-            "DELETE FROM password_resets WHERE email = ?", [email]
-        );
-
-        // Save new OTP
-        await db.query(
-            `INSERT INTO password_resets
-            (email, otp, expires_at)
-            VALUES (?, ?, ?)`, [email, otp, mysqlExpiry]
-        );
-
-        console.log("OTP SAVED:", {
-            email,
-            otp,
-            expires: mysqlExpiry
+        await PasswordReset.deleteMany({
+            email: normalizedEmail
         });
 
-        // Send OTP email using Resend
+        // Save new OTP
+        await PasswordReset.create({
+            email: normalizedEmail,
+            otp,
+            expires_at: expiry,
+            verified: false
+        });
+
+        console.log("OTP SAVED:", {
+            email: normalizedEmail,
+            otp,
+            expires: expiry
+        });
+
+        // Send OTP
         try {
 
-            await sendOTP(email, otp);
+            await sendOTP(normalizedEmail, otp);
 
-            console.log("OTP EMAIL SENT SUCCESSFULLY");
+            console.log(
+                "OTP EMAIL SENT SUCCESSFULLY"
+            );
 
         } catch (emailError) {
 
-            console.log("RESEND EMAIL ERROR:", emailError);
-
-            // Remove OTP because email was not sent
-            await db.query(
-                "DELETE FROM password_resets WHERE email = ?", [email]
+            console.log(
+                "RESEND EMAIL ERROR:",
+                emailError
             );
+
+            // Remove OTP if email failed
+            await PasswordReset.deleteMany({
+                email: normalizedEmail
+            });
 
             return res.status(500).json({
                 success: false,
@@ -261,21 +239,31 @@ router.post("/forgot-password", async(req, res) => {
 
     } catch (error) {
 
-        console.log("Forgot password error:", error);
+        console.log(
+            "Forgot password error:",
+            error
+        );
 
         return res.status(500).json({
             success: false,
             message: "Server error"
         });
-
     }
-
 });
 
 
+// =====================================================
+// VERIFY OTP
+// =====================================================
+
 router.post("/verify-otp", async(req, res) => {
+
     try {
-        const { email, otp } = req.body;
+
+        const {
+            email,
+            otp
+        } = req.body;
 
         if (!email || !otp) {
             return res.status(400).json({
@@ -284,31 +272,32 @@ router.post("/verify-otp", async(req, res) => {
             });
         }
 
-        const [rows] = await db.query(
-            `SELECT *
-             FROM password_resets
-             WHERE email = ?
-             AND otp = ?
-             AND expires_at > NOW()
-             ORDER BY id DESC
-             LIMIT 1`, [email, otp]
-        );
+        const normalizedEmail = email.toLowerCase().trim();
 
-        console.log("OTP DATA:", rows);
+        // Find valid OTP
+        const resetData = await PasswordReset.findOne({
+            email: normalizedEmail,
+            otp: otp,
+            expires_at: {
+                $gt: new Date()
+            }
+        }).sort({
+            createdAt: -1
+        });
 
-        if (rows.length === 0) {
+        console.log("OTP DATA:", resetData);
+
+        if (!resetData) {
             return res.json({
                 success: false,
                 message: "Invalid or expired OTP"
             });
         }
 
-        // OTP is valid
-        await db.query(
-            `UPDATE password_resets
-             SET verified = 1
-             WHERE id = ?`, [rows[0].id]
-        );
+        // Mark OTP as verified
+        resetData.verified = true;
+
+        await resetData.save();
 
         return res.json({
             success: true,
@@ -316,7 +305,11 @@ router.post("/verify-otp", async(req, res) => {
         });
 
     } catch (error) {
-        console.log("Verify OTP Error:", error);
+
+        console.log(
+            "Verify OTP Error:",
+            error
+        );
 
         return res.status(500).json({
             success: false,
@@ -325,9 +318,19 @@ router.post("/verify-otp", async(req, res) => {
     }
 });
 
+
+// =====================================================
+// RESET PASSWORD
+// =====================================================
+
 router.post("/reset-password", async(req, res) => {
+
     try {
-        const { email, password } = req.body;
+
+        const {
+            email,
+            password
+        } = req.body;
 
         if (!email || !password) {
             return res.status(400).json({
@@ -343,18 +346,20 @@ router.post("/reset-password", async(req, res) => {
             });
         }
 
-        // Check that OTP was actually verified
-        const [rows] = await db.query(
-            `SELECT *
-             FROM password_resets
-             WHERE email = ?
-             AND verified = 1
-             AND expires_at > NOW()
-             ORDER BY id DESC
-             LIMIT 1`, [email]
-        );
+        const normalizedEmail = email.toLowerCase().trim();
 
-        if (rows.length === 0) {
+        // Check OTP was verified
+        const resetData = await PasswordReset.findOne({
+            email: normalizedEmail,
+            verified: true,
+            expires_at: {
+                $gt: new Date()
+            }
+        }).sort({
+            createdAt: -1
+        });
+
+        if (!resetData) {
             return res.status(400).json({
                 success: false,
                 message: "OTP verification required"
@@ -362,17 +367,31 @@ router.post("/reset-password", async(req, res) => {
         }
 
         // Hash new password
-        const hash = await bcrypt.hash(password, 10);
-
-        // Update password
-        await db.query(
-            "UPDATE users SET password = ? WHERE email = ?", [hash, email]
+        const hash = await bcrypt.hash(
+            password,
+            10
         );
 
-        // Delete reset record
-        await db.query(
-            "DELETE FROM password_resets WHERE email = ?", [email]
-        );
+        // Update user password
+        const updatedUser = await User.findOneAndUpdate({
+            email: normalizedEmail
+        }, {
+            password: hash
+        }, {
+            new: true
+        });
+
+        if (!updatedUser) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        // Delete reset records
+        await PasswordReset.deleteMany({
+            email: normalizedEmail
+        });
 
         return res.json({
             success: true,
@@ -380,7 +399,11 @@ router.post("/reset-password", async(req, res) => {
         });
 
     } catch (error) {
-        console.log("Reset Password Error:", error);
+
+        console.log(
+            "Reset Password Error:",
+            error
+        );
 
         return res.status(500).json({
             success: false,
@@ -389,9 +412,5 @@ router.post("/reset-password", async(req, res) => {
     }
 });
 
-module.exports = router
 
-
-
-// ALTER TABLE password_resets
-// ADD COLUMN verified TINYINT(1) DEFAULT 0; need to add this query
+module.exports = router;
