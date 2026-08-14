@@ -6,8 +6,7 @@ const express = require("express")
 const cors = require("cors")
 require("dotenv").config()
 process.env.TZ = "Asia/Kolkata";
-
-const connectDB = require("./Config/db");
+const connectDB = require("./config/db");
 
 const bookingRoutes = require("./routes/bookingRoutes")
 const authRoutes = require("./routes/authRoutes")
