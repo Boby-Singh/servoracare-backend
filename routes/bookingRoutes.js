@@ -3,7 +3,7 @@ const router = express.Router();
 const generate6DigitId = require("../utils/generateId");
 const Booking = require("../models/Booking");
 const User = require("../models/User");
-const { sendNewBookingEmail } = require("../Utils/sendOTP");
+const { sendNewBookingEmail } = require("../utils/sendOTP");
 
 // ==========================================
 // CREATE PAYMENT
