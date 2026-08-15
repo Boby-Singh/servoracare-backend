@@ -543,6 +543,11 @@ const sendCustomerAssignedEmail = async(
                     </p>
 
                     <p>
+                        <strong>Technician Phone:</strong>
+                        ${technicianPhone || "Not available"}
+                    </p>
+
+                    <p>
                         <strong>Visit Date:</strong>
                         ${booking.visit_date || "Not specified"}
                     </p>
