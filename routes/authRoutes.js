@@ -41,8 +41,22 @@ router.post("/register", async(req, res) => {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // ==========================================
+        // GENERATE NEXT USER ID
+        // ==========================================
+
+        const lastUser = await User.findOne()
+            .sort({ user_id: -1 })
+            .select("user_id");
+
+
+        const nextUserId = lastUser ?
+            lastUser.user_id + 1 :
+            1;
+
         // Create user
         const user = await User.create({
+            user_id: nextUserId,
             name,
             email: normalizedEmail,
             password: hashedPassword,
