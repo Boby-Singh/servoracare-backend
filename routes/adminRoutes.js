@@ -6,7 +6,7 @@ const mongoose = require("mongoose");
 
 const User = require("../models/User");
 const Booking = require("../models/Booking");
-
+const { sendTechnicianAssignedEmail, sendCustomerAssignedEmail } = require("../utils/sendOTP");
 
 // ==========================================
 // ADD TECHNICIAN
@@ -183,9 +183,7 @@ router.put(
             // ==========================================
 
             if (!bookingId ||
-                !/^\d{6}$/.test(
-                    req.params.bookingId
-                )
+                !/^\d{6}$/.test(req.params.bookingId)
             ) {
 
                 return res.status(400).json({
@@ -238,7 +236,7 @@ router.put(
 
 
             // ==========================================
-            // FIND BOOKING USING 6-DIGIT ID
+            // FIND BOOKING
             // ==========================================
 
             const booking =
@@ -261,6 +259,27 @@ router.put(
 
 
             // ==========================================
+            // FIND CUSTOMER
+            // ==========================================
+
+            const customer =
+                await User.findById(
+                    booking.user_id
+                );
+
+
+            if (!customer) {
+
+                return res.status(404).json({
+
+                    message: "Customer Not Found"
+
+                });
+
+            }
+
+
+            // ==========================================
             // ASSIGN TECHNICIAN
             // ==========================================
 
@@ -268,10 +287,10 @@ router.put(
                 technician._id;
 
             booking.visit_date =
-                visit_date;
+                visit_date || null;
 
             booking.visit_time =
-                visit_time;
+                visit_time || null;
 
             booking.status =
                 "Accepted";
@@ -284,10 +303,82 @@ router.put(
 
 
             // ==========================================
+            // SEND EMAIL TO TECHNICIAN
+            // ==========================================
+
+            if (technician.email) {
+
+                try {
+
+                    await sendTechnicianAssignedEmail(
+
+                        technician.email,
+
+                        technician.name,
+
+                        booking
+
+                    );
+
+                    console.log(
+                        "Technician assignment email sent:",
+                        technician.email
+                    );
+
+                } catch (emailError) {
+
+                    console.error(
+                        "Technician email failed:",
+                        emailError
+                    );
+
+                }
+
+            }
+
+
+            // ==========================================
+            // SEND EMAIL TO CUSTOMER
+            // ==========================================
+
+            if (customer.email) {
+
+                try {
+
+                    await sendCustomerAssignedEmail(
+
+                        customer.email,
+
+                        customer.name,
+
+                        booking,
+
+                        technician.name
+
+                    );
+
+                    console.log(
+                        "Customer assignment email sent:",
+                        customer.email
+                    );
+
+                } catch (emailError) {
+
+                    console.error(
+                        "Customer email failed:",
+                        emailError
+                    );
+
+                }
+
+            }
+
+
+            // ==========================================
             // RESPONSE
             // ==========================================
 
-            res.json({
+            return res.json({
 
                 message: "Technician Assigned Successfully",
 
@@ -303,7 +394,7 @@ router.put(
                 error
             );
 
-            res.status(500).json({
+            return res.status(500).json({
 
                 message: "Assignment Failed"
 
