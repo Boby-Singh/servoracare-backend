@@ -25,8 +25,6 @@ router.post("/add-technician", async(req, res) => {
         } = req.body;
 
 
-        // Validate required fields
-
         if (!name ||
             !email ||
             !password ||
@@ -41,11 +39,14 @@ router.post("/add-technician", async(req, res) => {
         }
 
 
-        // Check email already exists
+        // ==========================================
+        // CHECK EMAIL
+        // ==========================================
 
         const existingUser = await User.findOne({
-            email: email
+            email: email.toLowerCase().trim()
         });
+
 
         if (existingUser) {
 
@@ -56,11 +57,15 @@ router.post("/add-technician", async(req, res) => {
         }
 
 
-        // Check employee code already exists
+        // ==========================================
+        // CHECK EMPLOYEE CODE
+        // ==========================================
 
-        const existingEmployee = await User.findOne({
-            employee_code: employee_code
-        });
+        const existingEmployee =
+            await User.findOne({
+                employee_code
+            });
+
 
         if (existingEmployee) {
 
@@ -71,29 +76,34 @@ router.post("/add-technician", async(req, res) => {
         }
 
 
-        // Hash password
+        // ==========================================
+        // HASH PASSWORD
+        // ==========================================
 
         const hashedPassword =
             await bcrypt.hash(password, 10);
 
 
-        // Create technician
+        // ==========================================
+        // CREATE TECHNICIAN
+        // ==========================================
 
-        const technician = await User.create({
+        const technician =
+            await User.create({
 
-            name,
+                name,
 
-            email,
+                email: email.toLowerCase().trim(),
 
-            password: hashedPassword,
+                password: hashedPassword,
 
-            role: "technician",
+                role: "technician",
 
-            employee_code,
+                employee_code,
 
-            phone
+                phone
 
-        });
+            });
 
 
         res.status(201).json({
@@ -118,6 +128,7 @@ router.post("/add-technician", async(req, res) => {
 
         });
 
+
     } catch (error) {
 
         console.error(
@@ -126,9 +137,7 @@ router.post("/add-technician", async(req, res) => {
         );
 
         res.status(500).json({
-
             message: "Server Error"
-
         });
 
     }
@@ -141,12 +150,15 @@ router.post("/add-technician", async(req, res) => {
 // ==========================================
 
 router.put(
-    "/assign-technician/:bookingId",
+    "/assign-technician/:id",
     async(req, res) => {
 
         try {
 
-            const { bookingId } = req.params;
+            // IMPORTANT:
+            // This is MongoDB _id
+            const mongoBookingId = req.params.id;
+
 
             const {
                 technician_id,
@@ -156,13 +168,17 @@ router.put(
 
 
             // ==========================================
-            // VALIDATE BOOKING ID
+            // VALIDATE BOOKING MONGODB ID
             // ==========================================
 
-            if (!/^\d{6}$/.test(bookingId)) {
+            if (!mongoose.Types.ObjectId.isValid(
+                    mongoBookingId
+                )) {
 
                 return res.status(400).json({
-                    message: "Invalid 6-digit Booking ID"
+
+                    message: "Invalid Booking MongoDB ID"
+
                 });
 
             }
@@ -172,12 +188,14 @@ router.put(
             // VALIDATE TECHNICIAN ID
             // ==========================================
 
-            if (!technician_id ||
-                !mongoose.Types.ObjectId.isValid(technician_id)
-            ) {
+            if (!mongoose.Types.ObjectId.isValid(
+                    technician_id
+                )) {
 
                 return res.status(400).json({
+
                     message: "Invalid Technician ID"
+
                 });
 
             }
@@ -187,39 +205,43 @@ router.put(
             // CHECK TECHNICIAN
             // ==========================================
 
-            const technician = await User.findOne({
+            const technician =
+                await User.findOne({
 
-                _id: technician_id,
+                    _id: technician_id,
 
-                role: "technician"
+                    role: "technician"
 
-            });
+                });
 
 
             if (!technician) {
 
                 return res.status(404).json({
+
                     message: "Technician Not Found"
+
                 });
 
             }
 
 
             // ==========================================
-            // FIND BOOKING USING 6-DIGIT BOOKING ID
+            // CHECK BOOKING
             // ==========================================
 
-            const booking = await Booking.findOne({
+            const existingBooking =
+                await Booking.findById(
+                    mongoBookingId
+                );
 
-                booking_id: Number(bookingId)
 
-            });
-
-
-            if (!booking) {
+            if (!existingBooking) {
 
                 return res.status(404).json({
+
                     message: "Booking Not Found"
+
                 });
 
             }
@@ -229,23 +251,33 @@ router.put(
             // UPDATE BOOKING
             // ==========================================
 
-            booking.technician_id = technician._id;
+            const booking =
+                await Booking.findByIdAndUpdate(
 
-            booking.visit_date = visit_date;
+                    mongoBookingId,
 
-            booking.visit_time = visit_time;
+                    {
 
-            booking.status = "Accepted";
+                        technician_id: technician._id,
 
-            booking.accepted_at = new Date();
+                        visit_date,
 
+                        visit_time,
 
-            await booking.save();
+                        status: "Accepted",
 
+                        accepted_at: new Date()
 
-            // ==========================================
-            // RESPONSE
-            // ==========================================
+                    },
+
+                    {
+
+                        new: true
+
+                    }
+
+                );
+
 
             res.json({
 
@@ -263,7 +295,6 @@ router.put(
                 error
             );
 
-
             res.status(500).json({
 
                 message: "Assignment Failed"
@@ -280,79 +311,81 @@ router.put(
 // GET CUSTOMERS
 // ==========================================
 
-router.get("/customers", async(req, res) => {
+router.get("/customers",
+    async(req, res) => {
 
-    try {
+        try {
 
-        const customers = await User.find({
+            const customers =
+                await User.find({
 
-            role: "customer"
+                    role: "customer"
 
-        })
+                })
 
-        .select(
-            "name email phone"
-        )
-
-        .sort({
-            _id: -1
-        });
-
-
-        const result = await Promise.all(
-
-            customers.map(
-                async(customer) => {
-
-                    const totalBookings =
-                        await Booking.countDocuments({
-
-                            user_id: customer._id
-
-                        });
-
-
-                    return {
-
-                        id: customer._id,
-
-                        name: customer.name,
-
-                        email: customer.email,
-
-                        phone: customer.phone,
-
-                        total_bookings: totalBookings,
-
-                        status: totalBookings > 0 ?
-                            "Active" : "Inactive"
-
-                    };
-
-                }
+            .select(
+                "name email phone"
             )
 
-        );
+            .sort({
+                _id: -1
+            });
 
 
-        res.json(result);
+            const result =
+                await Promise.all(
 
-    } catch (error) {
+                    customers.map(
+                        async(customer) => {
 
-        console.error(
-            "Get Customers Error:",
-            error
-        );
+                            const totalBookings =
+                                await Booking.countDocuments({
 
-        res.status(500).json({
+                                    user_id: customer._id
 
-            message: "Server Error"
+                                });
 
-        });
 
-    }
+                            return {
 
-});
+                                id: customer._id,
+
+                                name: customer.name,
+
+                                email: customer.email,
+
+                                phone: customer.phone,
+
+                                total_bookings: totalBookings,
+
+                                status: totalBookings > 0 ?
+                                    "Active" : "Inactive"
+
+                            };
+
+                        }
+                    )
+
+                );
+
+
+            res.json(result);
+
+
+        } catch (error) {
+
+            console.error(
+                "Get Customers Error:",
+                error
+            );
+
+            res.status(500).json({
+                message: "Server Error"
+            });
+
+        }
+
+    });
 
 
 // ==========================================
@@ -401,6 +434,7 @@ router.get(
 
             res.json(result);
 
+
         } catch (error) {
 
             console.error(
@@ -409,9 +443,7 @@ router.get(
             );
 
             res.status(500).json({
-
                 message: "Server Error"
-
             });
 
         }
@@ -482,6 +514,7 @@ router.get(
 
 
             res.status(200).json(result);
+
 
         } catch (error) {
 

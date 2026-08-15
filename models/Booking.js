@@ -1,182 +1,177 @@
 const mongoose = require("mongoose");
 
+const bookingSchema = new mongoose.Schema({
 
-// ==========================================
-// BOOKING SCHEMA
-// ==========================================
+    // ==========================================
+    // USER-FACING 6 DIGIT BOOKING ID
+    // Example: 985680
+    // ==========================================
 
-const bookingSchema = new mongoose.Schema(
+    booking_id: {
 
-    {
+        type: Number,
 
-        // ==========================================
-        // 6 DIGIT SERVORACARE BOOKING ID
-        // Example: 985680
-        // ==========================================
+        required: true,
 
-        booking_id: {
+        unique: true,
 
-            type: Number,
-
-            required: true,
-
-            unique: true,
-
-            index: true
-
-        },
-
-
-        // ==========================================
-        // CUSTOMER
-        // ==========================================
-
-        user_id: {
-
-            type: mongoose.Schema.Types.ObjectId,
-
-            ref: "User",
-
-            required: true
-
-        },
-
-
-        full_name: {
-
-            type: String,
-
-            required: true
-
-        },
-
-
-        phone: {
-
-            type: String,
-
-            required: true
-
-        },
-
-
-        address: {
-
-            type: String,
-
-            required: true
-
-        },
-
-
-        // ==========================================
-        // SERVICE
-        // ==========================================
-
-        service_type: {
-
-            type: String,
-
-            required: true
-
-        },
-
-
-        amount: {
-
-            type: Number,
-
-            required: true
-
-        },
-
-
-        // ==========================================
-        // STATUS
-        // ==========================================
-
-        status: {
-
-            type: String,
-
-            default: "Pending"
-
-        },
-
-
-        // ==========================================
-        // TECHNICIAN
-        // ==========================================
-
-        technician_id: {
-
-            type: mongoose.Schema.Types.ObjectId,
-
-            ref: "User",
-
-            default: null
-
-        },
-
-
-        technician_comment: {
-
-            type: String,
-
-            default: ""
-
-        },
-
-
-        // ==========================================
-        // VISIT
-        // ==========================================
-
-        visit_date: {
-
-            type: String,
-
-            default: null
-
-        },
-
-
-        visit_time: {
-
-            type: String,
-
-            default: null
-
-        },
-
-
-        accepted_at: {
-
-            type: Date,
-
-            default: null
-
-        }
+        index: true
 
     },
 
 
-    {
+    // ==========================================
+    // CUSTOMER
+    // ==========================================
 
-        timestamps: {
+    user_id: {
 
-            createdAt: "created_at",
+        type: mongoose.Schema.Types.ObjectId,
 
-            updatedAt: "updated_at"
+        ref: "User",
 
-        }
+        required: true
+
+    },
+
+
+    full_name: {
+
+        type: String,
+
+        required: true
+
+    },
+
+
+    phone: {
+
+        type: String,
+
+        required: true
+
+    },
+
+
+    address: {
+
+        type: String,
+
+        required: true
+
+    },
+
+
+    service_type: {
+
+        type: String,
+
+        required: true
+
+    },
+
+
+    amount: {
+
+        type: Number,
+
+        required: true
+
+    },
+
+
+    // ==========================================
+    // BOOKING STATUS
+    // ==========================================
+
+    status: {
+
+        type: String,
+
+        enum: [
+            "Pending",
+            "Accepted",
+            "Completed",
+            "Rejected"
+        ],
+
+        default: "Pending"
+
+    },
+
+
+    // ==========================================
+    // TECHNICIAN
+    // ==========================================
+
+    technician_id: {
+
+        type: mongoose.Schema.Types.ObjectId,
+
+        ref: "User",
+
+        default: null
+
+    },
+
+
+    technician_comment: {
+
+        type: String,
+
+        default: ""
+
+    },
+
+
+    // ==========================================
+    // VISIT DETAILS
+    // ==========================================
+
+    visit_date: {
+
+        type: String,
+
+        default: null
+
+    },
+
+
+    visit_time: {
+
+        type: String,
+
+        default: null
+
+    },
+
+
+    accepted_at: {
+
+        type: Date,
+
+        default: null
+
+    },
+
+
+    // ==========================================
+    // CREATED DATE
+    // ==========================================
+
+    created_at: {
+
+        type: Date,
+
+        default: Date.now
 
     }
 
-);
+});
 
 
-module.exports = mongoose.model(
-    "Booking",
-    bookingSchema
-);
+module.exports =
+    mongoose.model(
+        "Booking",
+        bookingSchema
+    );
