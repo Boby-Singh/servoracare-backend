@@ -44,144 +44,257 @@ router.post("/create-payment", async(req, res) => {
 
 
 // ==========================================
-// CREATE BOOKING
+// GENERATE UNIQUE 6 DIGIT BOOKING ID
 // ==========================================
 
-router.post("/book-service", async(req, res) => {
+const generateBookingId = async() => {
 
-    try {
+    let bookingId;
 
-        const {
-            user_id,
-            full_name,
-            phone,
-            address,
-            service_type,
-            amount
-        } = req.body;
+    let exists = true;
 
 
-        if (!user_id ||
-            !full_name ||
-            !phone ||
-            !address ||
-            !service_type ||
-            amount === undefined
-        ) {
+    while (exists) {
 
-            return res.status(400).json({
-                message: "All booking fields are required"
+        bookingId =
+            Math.floor(
+                100000 +
+                Math.random() * 900000
+            );
+
+
+        exists =
+            await Booking.exists({
+                booking_id: bookingId
             });
-
-        }
-
-
-        // Check user exists
-
-        const user = await User.findById(user_id);
-
-        if (!user) {
-
-            return res.status(404).json({
-                message: "User not found"
-            });
-
-        }
-
-
-        // Create booking
-
-        const booking = await Booking.create({
-
-            user_id: user._id,
-
-            full_name,
-
-            phone,
-
-            address,
-
-            service_type,
-
-            amount
-
-        });
-
-
-        res.status(201).json({
-
-            message: "Booking Successful",
-
-            booking
-
-        });
-
-    } catch (err) {
-
-        console.error("Booking Error:", err);
-
-        res.status(500).json({
-
-            message: "Booking Failed"
-
-        });
 
     }
 
-});
+
+    return bookingId;
+
+};
+
+
+// ==========================================
+// CREATE BOOKING
+// ==========================================
+
+router.post(
+    "/book-service",
+    async(req, res) => {
+
+        try {
+
+            const {
+
+                user_id,
+
+                full_name,
+
+                phone,
+
+                address,
+
+                service_type,
+
+                amount
+
+            } = req.body;
+
+
+            // ==========================================
+            // VALIDATION
+            // ==========================================
+
+            if (
+
+                !user_id ||
+
+                !full_name ||
+
+                !phone ||
+
+                !address ||
+
+                !service_type ||
+
+                amount === undefined
+
+            ) {
+
+                return res.status(400).json({
+
+                    message: "All booking fields are required"
+
+                });
+
+            }
+
+
+            // ==========================================
+            // CHECK USER
+            // ==========================================
+
+            const user =
+                await User.findById(user_id);
+
+
+            if (!user) {
+
+                return res.status(404).json({
+
+                    message: "User not found"
+
+                });
+
+            }
+
+
+            // ==========================================
+            // GENERATE 6 DIGIT BOOKING ID
+            // ==========================================
+
+            const bookingId =
+                await generateBookingId();
+
+
+            // ==========================================
+            // CREATE BOOKING
+            // ==========================================
+
+            const booking =
+                await Booking.create({
+
+                    booking_id: bookingId,
+
+                    user_id: user._id,
+
+                    full_name,
+
+                    phone,
+
+                    address,
+
+                    service_type,
+
+                    amount,
+
+                    status: "Pending"
+
+                });
+
+
+            // ==========================================
+            // RESPONSE
+            // ==========================================
+
+            res.status(201).json({
+
+                message: "Booking Successful",
+
+                booking
+
+            });
+
+
+        } catch (error) {
+
+            console.error(
+                "Booking Error:",
+                error
+            );
+
+
+            res.status(500).json({
+
+                message: "Booking Failed"
+
+            });
+
+        }
+
+    }
+);
 
 
 // ==========================================
 // GET ALL BOOKINGS
 // ==========================================
 
-router.get("/all-bookings", async(req, res) => {
+router.get(
+    "/all-bookings",
+    async(req, res) => {
 
-    try {
+        try {
 
-        const bookings = await Booking.find()
+            const bookings =
+                await Booking.find()
 
-        .populate({
-            path: "technician_id",
-            select: "name employee_code phone"
-        })
+            .populate({
 
-        .sort({
-            created_at: -1
-        });
+                path: "technician_id",
 
+                select: "name employee_code phone"
 
-        const result = bookings.map((booking) => ({
+            })
 
-            ...booking.toObject(),
+            .sort({
 
-            technician_name: booking.technician_id ?
-                booking.technician_id.name : null,
+                created_at:
+                    -1
 
-            employee_code: booking.technician_id ?
-                booking.technician_id.employee_code : null,
-
-            technician_phone: booking.technician_id ?
-                booking.technician_id.phone : null
-
-        }));
+            });
 
 
-        res.json(result);
+            const result =
+                bookings.map(
+                    (booking) => {
 
-    } catch (err) {
+                        const data =
+                            booking.toObject();
 
-        console.error("Get All Bookings Error:", err);
 
-        res.status(500).json({
+                        return {
 
-            message: "Server Error"
+                            ...data,
 
-        });
+                            technician_name: booking.technician_id ?
+                                booking.technician_id.name : null,
+
+                            employee_code: booking.technician_id ?
+                                booking.technician_id.employee_code : null,
+
+                            technician_phone: booking.technician_id ?
+                                booking.technician_id.phone : null
+
+                        };
+
+                    }
+                );
+
+
+            res.status(200).json(result);
+
+
+        } catch (error) {
+
+            console.error(
+                "Get All Bookings Error:",
+                error
+            );
+
+
+            res.status(500).json({
+
+                message: "Failed to fetch bookings"
+
+            });
+
+        }
 
     }
-
-});
+);
 
 
 // ==========================================
@@ -239,12 +352,12 @@ router.get(
 // ==========================================
 
 router.put(
-    "/update-status/:id",
+    "/update-status/:bookingId",
     async(req, res) => {
 
         try {
 
-            const { id } = req.params;
+            const { bookingId } = req.params;
 
             const {
                 status,
@@ -252,32 +365,44 @@ router.put(
             } = req.body;
 
 
+            if (!/^\d{6}$/.test(bookingId)) {
+
+                return res.status(400).json({
+                    message: "Invalid Booking ID"
+                });
+
+            }
+
+
             const booking =
-                await Booking.findByIdAndUpdate(
+                await Booking.findOne({
 
-                    id,
+                    booking_id: Number(bookingId)
 
-                    {
-                        status,
-                        technician_comment
-                    },
-
-                    {
-                        new: true
-                    }
-
-                );
+                });
 
 
             if (!booking) {
 
                 return res.status(404).json({
-
                     message: "Booking not found"
-
                 });
 
             }
+
+
+            booking.status = status;
+
+
+            if (technician_comment !== undefined) {
+
+                booking.technician_comment =
+                    technician_comment;
+
+            }
+
+
+            await booking.save();
 
 
             res.json({
@@ -288,12 +413,14 @@ router.put(
 
             });
 
+
         } catch (err) {
 
             console.error(
                 "Update Status Error:",
                 err
             );
+
 
             res.status(500).json({
 

@@ -141,12 +141,12 @@ router.post("/add-technician", async(req, res) => {
 // ==========================================
 
 router.put(
-    "/assign-technician/:id",
+    "/assign-technician/:bookingId",
     async(req, res) => {
 
         try {
 
-            const bookingId = req.params.id;
+            const { bookingId } = req.params;
 
             const {
                 technician_id,
@@ -155,99 +155,97 @@ router.put(
             } = req.body;
 
 
-            // Validate booking ID
+            // ==========================================
+            // VALIDATE BOOKING ID
+            // ==========================================
 
-            if (!mongoose.Types.ObjectId.isValid(
-                    bookingId
-                )) {
+            if (!/^\d{6}$/.test(bookingId)) {
 
                 return res.status(400).json({
-
-                    message: "Invalid Booking ID"
-
+                    message: "Invalid 6-digit Booking ID"
                 });
 
             }
 
 
-            // Validate technician ID
+            // ==========================================
+            // VALIDATE TECHNICIAN ID
+            // ==========================================
 
-            if (!mongoose.Types.ObjectId.isValid(
-                    technician_id
-                )) {
+            if (!technician_id ||
+                !mongoose.Types.ObjectId.isValid(technician_id)
+            ) {
 
                 return res.status(400).json({
-
                     message: "Invalid Technician ID"
-
                 });
 
             }
 
 
-            // Check technician exists
+            // ==========================================
+            // CHECK TECHNICIAN
+            // ==========================================
 
-            const technician =
-                await User.findOne({
+            const technician = await User.findOne({
 
-                    _id: technician_id,
+                _id: technician_id,
 
-                    role: "technician"
+                role: "technician"
 
-                });
+            });
 
 
             if (!technician) {
 
                 return res.status(404).json({
-
                     message: "Technician Not Found"
-
                 });
 
             }
 
 
-            // Update booking
+            // ==========================================
+            // FIND BOOKING USING 6-DIGIT BOOKING ID
+            // ==========================================
 
-            const booking =
-                await Booking.findByIdAndUpdate(
+            const booking = await Booking.findOne({
 
-                    bookingId,
+                booking_id: Number(bookingId)
 
-                    {
-
-                        technician_id: technician._id,
-
-                        visit_date,
-
-                        visit_time,
-
-                        status: "Accepted",
-
-                        accepted_at: new Date()
-
-                    },
-
-                    {
-
-                        new: true
-
-                    }
-
-                );
+            });
 
 
             if (!booking) {
 
                 return res.status(404).json({
-
                     message: "Booking Not Found"
-
                 });
 
             }
 
+
+            // ==========================================
+            // UPDATE BOOKING
+            // ==========================================
+
+            booking.technician_id = technician._id;
+
+            booking.visit_date = visit_date;
+
+            booking.visit_time = visit_time;
+
+            booking.status = "Accepted";
+
+            booking.accepted_at = new Date();
+
+
+            await booking.save();
+
+
+            // ==========================================
+            // RESPONSE
+            // ==========================================
 
             res.json({
 
@@ -257,12 +255,14 @@ router.put(
 
             });
 
+
         } catch (error) {
 
             console.error(
                 "Assign Technician Error:",
                 error
             );
+
 
             res.status(500).json({
 
@@ -325,8 +325,7 @@ router.get("/customers", async(req, res) => {
                         total_bookings: totalBookings,
 
                         status: totalBookings > 0 ?
-                            "Active" :
-                            "Inactive"
+                            "Active" : "Inactive"
 
                     };
 
@@ -464,20 +463,17 @@ router.get(
                             technician_name: booking.technician_id ?
                                 booking
                                 .technician_id
-                                .name :
-                                null,
+                                .name : null,
 
                             employee_code: booking.technician_id ?
                                 booking
                                 .technician_id
-                                .employee_code :
-                                null,
+                                .employee_code : null,
 
                             technician_phone: booking.technician_id ?
                                 booking
                                 .technician_id
-                                .phone :
-                                null
+                                .phone : null
 
                         };
 
