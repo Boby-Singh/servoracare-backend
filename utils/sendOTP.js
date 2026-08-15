@@ -1,59 +1,9 @@
-// const { Resend } = require("resend");
-
-// const resend = new Resend(process.env.RESEND_API_KEY);
-
-// const sendOTP = async(email, otp) => {
-//     try {
-//         const { data, error } = await resend.emails.send({
-//             from: `ServoraCare <${process.env.EMAIL_FROM}>`,
-//             to: [email],
-//             subject: "ServoraCare Password Reset OTP",
-
-//             html: `
-//                 <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto;">
-//                     <h2>ServoraCare</h2>
-
-//                     <p>Your OTP for password reset is:</p>
-
-//                     <h1 style="letter-spacing: 8px; text-align: center;">
-//                         ${otp}
-//                     </h1>
-
-//                     <p>This OTP is valid for <strong>5 minutes</strong>.</p>
-
-//                     <p>If you did not request this OTP, please ignore this email.</p>
-
-//                     <hr>
-
-//                     <p style="font-size: 12px; color: gray;">
-//                         © ServoraCare
-//                     </p>
-//                 </div>
-//             `
-//         });
-
-//         if (error) {
-//             console.error("RESEND ERROR:", error);
-//             throw error;
-//         }
-
-//         console.log("RESEND SUCCESS:", data);
-
-//         return data;
-
-//     } catch (error) {
-//         console.error("EMAIL ERROR:", error);
-//         throw error;
-//     }
-// };
-
-// module.exports = sendOTP;
-
-
 const { Resend } = require("resend");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-
+// ==========================================
+// SEND OTP
+// ==========================================
 const sendOTP = async(email, otp) => {
     try {
         const { data, error } = await resend.emails.send({
@@ -292,4 +242,372 @@ const sendOTP = async(email, otp) => {
     }
 };
 
-module.exports = sendOTP;
+// ==========================================
+// NEW BOOKING → ADMIN
+// ==========================================
+
+const sendNewBookingEmail = async(adminEmail, booking) => {
+
+    try {
+
+        const { data, error } = await resend.emails.send({
+
+            from: `ServoraCare <${process.env.EMAIL_FROM}>`,
+
+            to: [adminEmail],
+
+            subject: `New Service Booking #${booking.booking_id}`,
+
+            html: `
+
+                <div style="
+                    font-family: Arial, sans-serif;
+                    max-width: 600px;
+                    margin: auto;
+                ">
+
+                    <h2 style="color:#0b4ea2;">
+                        New Service Booking
+                    </h2>
+
+                    <p>
+                        A new service booking has been received.
+                    </p>
+
+                    <hr>
+
+                    <p>
+                        <strong>Booking ID:</strong>
+                        ${booking.booking_id}
+                    </p>
+
+                    <p>
+                        <strong>Customer:</strong>
+                        ${booking.full_name}
+                    </p>
+
+                    <p>
+                        <strong>Phone:</strong>
+                        ${booking.phone}
+                    </p>
+
+                    <p>
+                        <strong>Service:</strong>
+                        ${booking.service_type}
+                    </p>
+
+                    <p>
+                        <strong>Amount:</strong>
+                        ₹${booking.amount}
+                    </p>
+
+                    <p>
+                        <strong>Address:</strong>
+                        ${booking.address}
+                    </p>
+
+                    <p>
+                        <strong>Status:</strong>
+                        ${booking.status}
+                    </p>
+
+                    <hr>
+
+                    <p>
+                        Please open the ServoraCare Admin Dashboard
+                        to manage this booking.
+                    </p>
+
+                </div>
+
+            `
+        });
+
+
+        if (error) {
+
+            console.error(
+                "RESEND BOOKING ERROR:",
+                error
+            );
+
+            throw error;
+
+        }
+
+
+        console.log(
+            "BOOKING EMAIL SENT:",
+            data
+        );
+
+        return data;
+
+
+    } catch (error) {
+
+        console.error(
+            "BOOKING EMAIL ERROR:",
+            error
+        );
+
+        throw error;
+
+    }
+
+};
+
+
+// ==========================================
+// TECHNICIAN ASSIGNED → TECHNICIAN
+// ==========================================
+
+const sendTechnicianAssignedEmail = async(
+    technicianEmail,
+    technicianName,
+    booking
+) => {
+
+    try {
+
+        const { data, error } = await resend.emails.send({
+
+            from: `ServoraCare <${process.env.EMAIL_FROM}>`,
+
+            to: [technicianEmail],
+
+            subject: `New Service Assignment #${booking.booking_id}`,
+
+            html: `
+
+                <div style="
+                    font-family: Arial, sans-serif;
+                    max-width: 600px;
+                    margin: auto;
+                ">
+
+                    <h2 style="color:#0b4ea2;">
+                        New Service Assignment
+                    </h2>
+
+                    <p>
+                        Hello ${technicianName},
+                    </p>
+
+                    <p>
+                        You have been assigned a new service booking.
+                    </p>
+
+                    <hr>
+
+                    <p>
+                        <strong>Booking ID:</strong>
+                        ${booking.booking_id}
+                    </p>
+
+                    <p>
+                        <strong>Customer:</strong>
+                        ${booking.full_name}
+                    </p>
+
+                    <p>
+                        <strong>Phone:</strong>
+                        ${booking.phone}
+                    </p>
+
+                    <p>
+                        <strong>Service:</strong>
+                        ${booking.service_type}
+                    </p>
+
+                    <p>
+                        <strong>Address:</strong>
+                        ${booking.address}
+                    </p>
+
+                    <p>
+                        <strong>Visit Date:</strong>
+                        ${booking.visit_date || "Not specified"}
+                    </p>
+
+                    <p>
+                        <strong>Visit Time:</strong>
+                        ${booking.visit_time || "Not specified"}
+                    </p>
+
+                    <hr>
+
+                    <p>
+                        Please log in to your ServoraCare
+                        technician dashboard.
+                    </p>
+
+                </div>
+
+            `
+        });
+
+
+        if (error) {
+
+            console.error(
+                "RESEND TECHNICIAN ERROR:",
+                error
+            );
+
+            throw error;
+
+        }
+
+
+        console.log(
+            "TECHNICIAN EMAIL SENT:",
+            data
+        );
+
+        return data;
+
+
+    } catch (error) {
+
+        console.error(
+            "TECHNICIAN EMAIL ERROR:",
+            error
+        );
+
+        throw error;
+
+    }
+
+};
+
+
+// ==========================================
+// TECHNICIAN ASSIGNED → CUSTOMER
+// ==========================================
+
+const sendCustomerAssignedEmail = async(
+    customerEmail,
+    customerName,
+    booking,
+    technicianName
+) => {
+
+    try {
+
+        const { data, error } = await resend.emails.send({
+
+            from: `ServoraCare <${process.env.EMAIL_FROM}>`,
+
+            to: [customerEmail],
+
+            subject: `Technician Assigned - Booking #${booking.booking_id}`,
+
+            html: `
+
+                <div style="
+                    font-family: Arial, sans-serif;
+                    max-width: 600px;
+                    margin: auto;
+                ">
+
+                    <h2 style="color:#0b4ea2;">
+                        Technician Assigned
+                    </h2>
+
+                    <p>
+                        Hello ${customerName},
+                    </p>
+
+                    <p>
+                        A technician has been assigned to your
+                        ServoraCare service request.
+                    </p>
+
+                    <hr>
+
+                    <p>
+                        <strong>Booking ID:</strong>
+                        ${booking.booking_id}
+                    </p>
+
+                    <p>
+                        <strong>Service:</strong>
+                        ${booking.service_type}
+                    </p>
+
+                    <p>
+                        <strong>Technician:</strong>
+                        ${technicianName}
+                    </p>
+
+                    <p>
+                        <strong>Visit Date:</strong>
+                        ${booking.visit_date || "Not specified"}
+                    </p>
+
+                    <p>
+                        <strong>Visit Time:</strong>
+                        ${booking.visit_time || "Not specified"}
+                    </p>
+
+                    <hr>
+
+                    <p>
+                        Thank you for choosing ServoraCare.
+                    </p>
+
+                </div>
+
+            `
+        });
+
+
+        if (error) {
+
+            console.error(
+                "RESEND CUSTOMER ERROR:",
+                error
+            );
+
+            throw error;
+
+        }
+
+
+        console.log(
+            "CUSTOMER EMAIL SENT:",
+            data
+        );
+
+        return data;
+
+    } catch (error) {
+
+        console.error(
+            "CUSTOMER EMAIL ERROR:",
+            error
+        );
+
+        throw error;
+
+    }
+
+};
+
+
+// ==========================================
+// EXPORT ALL EMAIL FUNCTIONS
+// ==========================================
+
+module.exports = {
+
+    sendOTP,
+
+    sendNewBookingEmail,
+
+    sendTechnicianAssignedEmail,
+
+    sendCustomerAssignedEmail
+
+};

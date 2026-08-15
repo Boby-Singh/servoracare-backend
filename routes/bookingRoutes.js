@@ -3,7 +3,7 @@ const router = express.Router();
 const generate6DigitId = require("../utils/generateId");
 const Booking = require("../models/Booking");
 const User = require("../models/User");
-
+const { sendNewBookingEmail } = require("../Utils/sendOTP");
 
 // ==========================================
 // CREATE PAYMENT
@@ -135,6 +135,38 @@ router.post("/book-service", async(req, res) => {
             status: "Pending"
 
         });
+
+        // ==========================================
+        // SEND EMAIL TO ADMIN
+        // ==========================================
+
+        const admins = await User.find({
+            role: "admin"
+        }).select("email");
+
+        for (const admin of admins) {
+
+            if (admin.email) {
+
+                try {
+
+                    await sendNewBookingEmail(
+                        admin.email,
+                        booking
+                    );
+
+                } catch (emailError) {
+
+                    console.error(
+                        "ADMIN BOOKING EMAIL FAILED:",
+                        emailError
+                    );
+
+                }
+
+            }
+
+        }
 
 
         // ==========================================
