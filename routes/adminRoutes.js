@@ -353,7 +353,9 @@ router.put(
 
                         booking,
 
-                        technician.name
+                        technician.name,
+
+                        technician.phone
 
                     );
 
