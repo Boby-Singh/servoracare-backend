@@ -490,7 +490,8 @@ const sendCustomerAssignedEmail = async(
     customerEmail,
     customerName,
     booking,
-    technicianName
+    technicianName,
+    technicianPhone
 ) => {
 
     try {
