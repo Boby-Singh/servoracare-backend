@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-
+const generate6DigitId = require("../utils/generateId");
 const Booking = require("../models/Booking");
 const User = require("../models/User");
 
@@ -41,33 +41,6 @@ router.post("/create-payment", async(req, res) => {
     }
 
 });
-
-
-// ==========================================
-// GENERATE UNIQUE 6-DIGIT BOOKING ID
-// ==========================================
-
-const generateBookingId = async() => {
-
-    let bookingId;
-    let exists = true;
-
-    while (exists) {
-
-        bookingId = Math.floor(
-            100000 + Math.random() * 900000
-        );
-
-        exists = await Booking.exists({
-            booking_id: bookingId
-        });
-
-    }
-
-    return bookingId;
-
-};
-
 
 // ==========================================
 // CREATE BOOKING
@@ -125,7 +98,18 @@ router.post("/book-service", async(req, res) => {
         // GENERATE 6-DIGIT BOOKING ID
         // ==========================================
 
-        const bookingId = await generateBookingId();
+        let bookingId;
+        let exists = true;
+
+        while (exists) {
+
+            bookingId = generate6DigitId();
+
+            exists = await Booking.exists({
+                booking_id: bookingId
+            });
+
+        }
 
 
         // ==========================================

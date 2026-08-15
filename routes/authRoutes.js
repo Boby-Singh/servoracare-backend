@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-
+const generate6DigitId = require("../utils/generateId");
 const sendOTP = require("../utils/sendOTP");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");

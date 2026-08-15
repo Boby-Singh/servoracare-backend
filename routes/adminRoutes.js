@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-
+const generate6DigitId = require("../utils/generateId");
 const bcrypt = require("bcryptjs");
 const mongoose = require("mongoose");
 
@@ -83,7 +83,18 @@ router.post("/add-technician", async(req, res) => {
         const hashedPassword =
             await bcrypt.hash(password, 10);
 
+        let userId;
+        let exists = true;
 
+        while (exists) {
+
+            userId = generate6DigitId();
+
+            exists = await User.exists({
+                user_id: userId
+            });
+
+        }
         // ==========================================
         // CREATE TECHNICIAN
         // ==========================================
@@ -113,6 +124,8 @@ router.post("/add-technician", async(req, res) => {
             technician: {
 
                 id: technician._id,
+
+                user_id: technician.user_id,
 
                 name: technician.name,
 
@@ -150,15 +163,13 @@ router.post("/add-technician", async(req, res) => {
 // ==========================================
 
 router.put(
-    "/assign-technician/:id",
+    "/assign-technician/:bookingId",
     async(req, res) => {
 
         try {
 
-            // IMPORTANT:
-            // This is MongoDB _id
-            const mongoBookingId = req.params.id;
-
+            const bookingId =
+                Number(req.params.bookingId);
 
             const {
                 technician_id,
@@ -168,16 +179,18 @@ router.put(
 
 
             // ==========================================
-            // VALIDATE BOOKING MONGODB ID
+            // VALIDATE BOOKING ID
             // ==========================================
 
-            if (!mongoose.Types.ObjectId.isValid(
-                    mongoBookingId
-                )) {
+            if (!bookingId ||
+                !/^\d{6}$/.test(
+                    req.params.bookingId
+                )
+            ) {
 
                 return res.status(400).json({
 
-                    message: "Invalid Booking MongoDB ID"
+                    message: "Invalid 6-digit Booking ID"
 
                 });
 
@@ -185,16 +198,14 @@ router.put(
 
 
             // ==========================================
-            // VALIDATE TECHNICIAN ID
+            // VALIDATE TECHNICIAN
             // ==========================================
 
-            if (!mongoose.Types.ObjectId.isValid(
-                    technician_id
-                )) {
+            if (!technician_id) {
 
                 return res.status(400).json({
 
-                    message: "Invalid Technician ID"
+                    message: "Technician ID is required"
 
                 });
 
@@ -202,7 +213,7 @@ router.put(
 
 
             // ==========================================
-            // CHECK TECHNICIAN
+            // FIND TECHNICIAN
             // ==========================================
 
             const technician =
@@ -227,16 +238,18 @@ router.put(
 
 
             // ==========================================
-            // CHECK BOOKING
+            // FIND BOOKING USING 6-DIGIT ID
             // ==========================================
 
-            const existingBooking =
-                await Booking.findById(
-                    mongoBookingId
-                );
+            const booking =
+                await Booking.findOne({
+
+                    booking_id: bookingId
+
+                });
 
 
-            if (!existingBooking) {
+            if (!booking) {
 
                 return res.status(404).json({
 
@@ -248,36 +261,31 @@ router.put(
 
 
             // ==========================================
-            // UPDATE BOOKING
+            // ASSIGN TECHNICIAN
             // ==========================================
 
-            const booking =
-                await Booking.findByIdAndUpdate(
+            booking.technician_id =
+                technician._id;
 
-                    mongoBookingId,
+            booking.visit_date =
+                visit_date;
 
-                    {
+            booking.visit_time =
+                visit_time;
 
-                        technician_id: technician._id,
+            booking.status =
+                "Accepted";
 
-                        visit_date,
+            booking.accepted_at =
+                new Date();
 
-                        visit_time,
 
-                        status: "Accepted",
+            await booking.save();
 
-                        accepted_at: new Date()
 
-                    },
-
-                    {
-
-                        new: true
-
-                    }
-
-                );
-
+            // ==========================================
+            // RESPONSE
+            // ==========================================
 
             res.json({
 
