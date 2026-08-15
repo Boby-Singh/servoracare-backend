@@ -45,13 +45,17 @@ router.post("/register", async(req, res) => {
         // GENERATE NEXT USER ID
         // ==========================================
 
-        const lastUser = await User.findOne()
-            .sort({ user_id: -1 })
-            .select("user_id");
+        const users = await User.find({})
+            .select("user_id")
+            .lean();
 
+        const validUserIds = users
+            .map(user => Number(user.user_id))
+            .filter(id => Number.isInteger(id) && id > 0);
 
-        const nextUserId = lastUser ?
-            lastUser.user_id + 1 :
+        const nextUserId =
+            validUserIds.length > 0 ?
+            Math.max(...validUserIds) + 1 :
             1;
 
         // Create user
