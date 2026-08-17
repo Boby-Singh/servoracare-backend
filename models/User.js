@@ -42,6 +42,71 @@ const userSchema = new mongoose.Schema({
         default: null
     },
 
+    // =========================
+    // PROFILE
+    // =========================
+
+    profile: {
+
+        profile_picture: {
+            file_id: {
+                type: mongoose.Schema.Types.ObjectId,
+                default: null
+            },
+            filename: {
+                type: String,
+                default: null
+            },
+            content_type: {
+                type: String,
+                default: null
+            }
+        },
+
+        // =========================
+        // AADHAAR
+        // =========================
+
+        aadhaar: {
+            file_id: {
+                type: mongoose.Schema.Types.ObjectId,
+                default: null
+            },
+            filename: {
+                type: String,
+                default: null
+            },
+            content_type: {
+                type: String,
+                default: null
+            },
+            verified: {
+                type: Boolean,
+                default: false
+            }
+        },
+
+        // =========================
+        // RESUME
+        // =========================
+
+        resume: {
+            file_id: {
+                type: mongoose.Schema.Types.ObjectId,
+                default: null
+            },
+            filename: {
+                type: String,
+                default: null
+            },
+            content_type: {
+                type: String,
+                default: null
+            }
+        }
+
+    },
+
     created_at: {
         type: Date,
         default: Date.now
