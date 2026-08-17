@@ -3,6 +3,7 @@ const router = express.Router();
 
 const multer = require("multer");
 const mongoose = require("mongoose");
+const fs = require("fs");
 
 const JobApplication = require("../models/JobApplication");
 
@@ -31,8 +32,97 @@ const storage = multer.diskStorage({
 // MULTER UPLOAD
 // ==========================================
 
+// ==========================================
+// FILE SIZE LIMITS
+// ==========================================
+
+const fileSizeLimits = {
+
+    resume: 2 * 1024 * 1024, // 2 MB
+
+    aadhaar_file: 200 * 1024, // 500 KB
+
+    photo: 100 * 1024 // 300 KB
+
+};
+
+// ==========================================
+// ALLOWED FILE TYPES
+// ==========================================
+
+const allowedTypes = {
+
+    resume: [
+
+        "application/pdf"
+
+    ],
+
+    aadhaar_file: [
+
+        "application/pdf",
+
+        "image/jpeg",
+
+        "image/png"
+
+    ],
+
+    photo: [
+
+        "image/jpeg",
+
+        "image/png"
+
+    ]
+
+};
+
+
+// ==========================================
+// MULTER UPLOAD
+// ==========================================
+
 const upload = multer({
-    storage: storage
+
+    storage: storage,
+
+    limits: {
+        fileSize: 2 * 1024 * 1024
+    },
+
+    fileFilter: (req, file, cb) => {
+
+        const allowed =
+            allowedTypes[file.fieldname];
+
+        if (!allowed) {
+
+            return cb(
+                new Error("Invalid upload field")
+            );
+
+        }
+
+        // ==========================================
+        // CHECK MIME TYPE
+        // ==========================================
+
+        if (!allowed.includes(file.mimetype)) {
+
+            return cb(
+                new Error(
+                    `Invalid file type for ${file.fieldname}`
+                )
+            );
+
+        }
+
+
+        cb(null, true);
+
+    }
+
 });
 
 // ==========================================
@@ -159,8 +249,6 @@ router.post(
                 success: true,
 
                 message: "Application Submitted Successfully",
-
-                application
 
             });
 
