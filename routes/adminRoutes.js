@@ -508,7 +508,7 @@ router.get(
                 })
 
             .select(
-                "name email employee_code phone"
+                "user_id name email employee_code phone"
             )
 
             .sort({
@@ -521,6 +521,8 @@ router.get(
                     (technician) => ({
 
                         id: technician._id,
+
+                        user_id: technician.user_id,
 
                         name: technician.name,
 
