@@ -426,7 +426,7 @@ router.get("/customers",
                 })
 
             .select(
-                "name email phone"
+                "user_id name email phone"
             )
 
             .sort({
@@ -451,6 +451,8 @@ router.get("/customers",
                             return {
 
                                 id: customer._id,
+
+                                user_id: customer.user_id,
 
                                 name: customer.name,
 
