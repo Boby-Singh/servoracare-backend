@@ -101,6 +101,7 @@ router.post("/add-technician", async(req, res) => {
 
         const technician =
             await User.create({
+                user_id: userId,
 
                 name,
 
