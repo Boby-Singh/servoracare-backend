@@ -430,5 +430,84 @@ router.post("/reset-password", async(req, res) => {
     }
 });
 
+// ==========================================
+// UPDATE USER PROFILE
+// ==========================================
+
+router.put("/update-profile/:userId", async(req, res) => {
+    try {
+
+        const { userId } = req.params;
+        const { name, phone } = req.body;
+
+        // -----------------------------
+        // VALIDATION
+        // -----------------------------
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "Name is required"
+            });
+        }
+
+        // -----------------------------
+        // FIND USER
+        // -----------------------------
+
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        // -----------------------------
+        // UPDATE
+        // -----------------------------
+
+        user.name = name.trim();
+
+        if (phone !== undefined) {
+            user.phone = phone.trim();
+        }
+
+        await user.save();
+
+        // -----------------------------
+        // RESPONSE
+        // -----------------------------
+
+        res.status(200).json({
+            success: true,
+            message: "Profile updated successfully",
+
+            user: {
+                id: user._id,
+                user_id: user.user_id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                role: user.role
+            }
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Update Profile Error:",
+            error
+        );
+
+        res.status(500).json({
+            success: false,
+            message: "Server error while updating profile"
+        });
+    }
+});
+
+
 
 module.exports = router;
