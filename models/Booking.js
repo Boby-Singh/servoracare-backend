@@ -123,6 +123,12 @@ const bookingSchema = new mongoose.Schema({
 
     },
 
+    rejection_reason: {
+        type: String,
+        default: null,
+        trim: true
+    },
+
 
     // ==========================================
     // VISIT DETAILS

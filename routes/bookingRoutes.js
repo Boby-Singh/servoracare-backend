@@ -311,69 +311,144 @@ router.get(
 // UPDATE BOOKING STATUS
 // ==========================================
 
-router.put("/update-status/:id",
-    async(req, res) => {
+router.put("/update-status/:id", async(req, res) => {
 
-        try {
+    try {
 
-            const { id } = req.params;
+        const { id } = req.params;
 
-            const {
-                status,
-                technician_comment
-            } = req.body;
-
-
-            const booking =
-                await Booking.findByIdAndUpdate(
-
-                    id,
-
-                    {
-                        status,
-                        technician_comment
-                    },
-
-                    {
-                        new: true
-                    }
-
-                );
+        const {
+            status,
+            technician_comment,
+            rejection_reason
+        } = req.body;
 
 
-            if (!booking) {
+        // ==========================================
+        // VALIDATE STATUS
+        // ==========================================
 
-                return res.status(404).json({
-                    message: "Booking not found"
-                });
+        const allowedStatuses = [
+            "Pending",
+            "Accepted",
+            "Completed",
+            "Rejected"
+        ];
 
-            }
+        if (!allowedStatuses.includes(status)) {
 
-
-            res.json({
-
-                message: "Updated Successfully",
-
-                booking
-
-            });
-
-
-        } catch (error) {
-
-            console.error(
-                "Update Status Error:",
-                error
-            );
-
-            res.status(500).json({
-                message: "Update Failed"
+            return res.status(400).json({
+                message: "Invalid booking status"
             });
 
         }
 
+
+        // ==========================================
+        // REJECTION VALIDATION
+        // ==========================================
+
+        if (
+            status === "Rejected" &&
+            (!rejection_reason ||
+                rejection_reason.trim() === "")
+        ) {
+
+            return res.status(400).json({
+                message: "Rejection reason is required"
+            });
+
+        }
+
+
+        // ==========================================
+        // UPDATE DATA
+        // ==========================================
+
+        const updateData = {
+            status
+        };
+
+
+        // ==========================================
+        // TECHNICIAN COMMENT
+        // ==========================================
+
+        if (technician_comment !== undefined) {
+
+            updateData.technician_comment =
+                technician_comment;
+
+        }
+
+
+        // ==========================================
+        // REJECTION REASON
+        // ==========================================
+
+        if (status === "Rejected") {
+
+            updateData.rejection_reason =
+                rejection_reason.trim();
+
+        } else {
+
+            updateData.rejection_reason = null;
+
+        }
+
+
+        // ==========================================
+        // UPDATE BOOKING
+        // ==========================================
+
+        const booking =
+            await Booking.findByIdAndUpdate(
+                id,
+                updateData, {
+                    new: true,
+                    runValidators: true
+                }
+            );
+
+
+        // ==========================================
+        // BOOKING NOT FOUND
+        // ==========================================
+
+        if (!booking) {
+
+            return res.status(404).json({
+                message: "Booking not found"
+            });
+
+        }
+
+
+        // ==========================================
+        // SUCCESS
+        // ==========================================
+
+        return res.json({
+            message: "Updated Successfully",
+            booking
+        });
+
+
+    } catch (error) {
+
+        console.error(
+            "Update Status Error:",
+            error
+        );
+
+        return res.status(500).json({
+            message: "Update Failed"
+        });
+
     }
-);
+
+});
 
 
 // ==========================================
