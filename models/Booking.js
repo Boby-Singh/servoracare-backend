@@ -129,6 +129,12 @@ const bookingSchema = new mongoose.Schema({
         trim: true
     },
 
+    completion_comment: {
+        type: String,
+        trim: true,
+        default: null
+    },
+
 
     // ==========================================
     // VISIT DETAILS

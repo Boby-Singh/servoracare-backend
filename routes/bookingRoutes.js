@@ -320,7 +320,8 @@ router.put("/update-status/:id", async(req, res) => {
         const {
             status,
             technician_comment,
-            rejection_reason
+            rejection_reason,
+            completion_comment
         } = req.body;
 
 
