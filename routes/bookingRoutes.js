@@ -523,7 +523,7 @@ router.get(
     }
 );
 
-router.post("/:id/request-completion-otp", async(req, res) => {
+router.post("/bookings/:id/request-completion-otp", async(req, res) => {
 
     try {
 
@@ -587,7 +587,7 @@ router.post("/:id/request-completion-otp", async(req, res) => {
 
 });
 
-router.post("/:id/verify-completion-otp", async(req, res) => {
+router.post("/bookings/:id/verify-completion-otp", async(req, res) => {
 
     try {
 
