@@ -4,6 +4,7 @@ const generate6DigitId = require("../utils/generateId");
 const Booking = require("../models/Booking");
 const User = require("../models/User");
 const { sendNewBookingEmail } = require("../utils/sendOTP");
+const crypto = require("crypto");
 
 // ==========================================
 // CREATE PAYMENT
@@ -522,5 +523,158 @@ router.get(
     }
 );
 
+router.post("/:id/request-completion-otp", async(req, res) => {
+
+    try {
+
+        const { id } = req.params;
+
+        const booking = await Booking.findById(id);
+
+        if (!booking) {
+            return res.status(404).json({
+                success: false,
+                message: "Booking not found"
+            });
+        }
+
+        // Only accepted bookings can be completed
+        if (booking.status !== "Accepted") {
+            return res.status(400).json({
+                success: false,
+                message: "Only accepted bookings can be completed"
+            });
+        }
+
+        // Generate secure 6 digit OTP
+        const otp = crypto
+            .randomInt(100000, 1000000)
+            .toString();
+
+        // OTP valid for 5 minutes
+        const expires = new Date(
+            Date.now() + 5 * 60 * 1000
+        );
+
+        booking.completion_otp = otp;
+        booking.completion_otp_expires = expires;
+        booking.completion_otp_verified = false;
+
+        await booking.save();
+
+        console.log(
+            `Completion OTP for booking ${booking.booking_id}: ${otp}`
+        );
+
+        res.json({
+            success: true,
+            message: "OTP generated successfully"
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Completion OTP Error:",
+            error
+        );
+
+        res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+
+    }
+
+});
+
+router.post("/:id/verify-completion-otp", async(req, res) => {
+
+    try {
+
+        const { id } = req.params;
+        const { otp } = req.body;
+
+        if (!otp) {
+            return res.status(400).json({
+                success: false,
+                message: "OTP is required"
+            });
+        }
+
+        const booking = await Booking.findById(id);
+
+        if (!booking) {
+            return res.status(404).json({
+                success: false,
+                message: "Booking not found"
+            });
+        }
+
+        if (booking.status !== "Accepted") {
+            return res.status(400).json({
+                success: false,
+                message: "This booking cannot be completed"
+            });
+        }
+
+        // Check OTP expiry
+        if (!booking.completion_otp_expires ||
+            booking.completion_otp_expires < new Date()
+        ) {
+
+            return res.status(400).json({
+                success: false,
+                message: "OTP has expired. Please request a new OTP."
+            });
+
+        }
+
+        // Check OTP
+        if (booking.completion_otp !== otp.toString()) {
+
+            return res.status(400).json({
+                success: false,
+                message: "Invalid OTP"
+            });
+
+        }
+
+        // ==============================
+        // OTP VERIFIED
+        // ==============================
+
+        booking.completion_otp_verified = true;
+
+        booking.status = "Completed";
+
+        booking.completed_at = new Date();
+
+        // Remove OTP after successful verification
+        booking.completion_otp = null;
+        booking.completion_otp_expires = null;
+
+        await booking.save();
+
+        res.json({
+            success: true,
+            message: "Service completed successfully",
+            booking
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Verify Completion OTP Error:",
+            error
+        );
+
+        res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+
+    }
+
+});
 
 module.exports = router;

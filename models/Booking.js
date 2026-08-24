@@ -135,6 +135,26 @@ const bookingSchema = new mongoose.Schema({
         default: null
     },
 
+    completion_otp: {
+        type: String,
+        default: null
+    },
+
+    completion_otp_expires: {
+        type: Date,
+        default: null
+    },
+
+    completion_otp_verified: {
+        type: Boolean,
+        default: false
+    },
+
+    completed_at: {
+        type: Date,
+        default: null
+    },
+
 
     // ==========================================
     // VISIT DETAILS
