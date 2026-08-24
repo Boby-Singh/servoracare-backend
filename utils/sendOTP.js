@@ -603,6 +603,317 @@ const sendCustomerAssignedEmail = async(
 
 
 // ==========================================
+// COMPLETION OTP → CUSTOMER
+// ==========================================
+
+const sendCompletionOTP = async(customerEmail, customerName, booking, otp) => {
+    try {
+
+        const { data, error } = await resend.emails.send({
+
+            from: `ServoraCare <${process.env.EMAIL_FROM}>`,
+
+            to: [customerEmail],
+
+            subject: `Service Completion OTP - Booking #${booking.booking_id}`,
+
+            html: `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ServoraCare Completion OTP</title>
+</head>
+
+<body style="
+    margin:0;
+    padding:0;
+    background-color:#f4f7fb;
+    font-family:Arial, Helvetica, sans-serif;
+">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 15px;">
+<tr>
+<td align="center">
+
+<table
+    width="100%"
+    cellpadding="0"
+    cellspacing="0"
+    style="
+        max-width:520px;
+        background:#ffffff;
+        border-radius:12px;
+        overflow:hidden;
+        box-shadow:0 4px 15px rgba(0,0,0,0.08);
+    "
+>
+
+<!-- HEADER -->
+
+<tr>
+<td style="
+    background:#0b4ea2;
+    padding:28px 30px;
+    text-align:center;
+">
+
+<h1 style="
+    margin:0;
+    color:#ffffff;
+    font-size:28px;
+    letter-spacing:1px;
+">
+SERVORACARE
+</h1>
+
+<p style="
+    margin:8px 0 0;
+    color:#dbeafe;
+    font-size:13px;
+">
+Services That Care
+</p>
+
+</td>
+</tr>
+
+
+<!-- CONTENT -->
+
+<tr>
+<td style="padding:35px 35px 25px;">
+
+<h2 style="
+    margin:0 0 15px;
+    color:#1f2937;
+    font-size:22px;
+">
+Service Completion Verification
+</h2>
+
+<p style="
+    color:#4b5563;
+    font-size:15px;
+    line-height:1.6;
+">
+Hello ${customerName || "Customer"},
+</p>
+
+<p style="
+    color:#4b5563;
+    font-size:15px;
+    line-height:1.6;
+">
+Your ServoraCare technician has requested completion
+verification for your service booking.
+</p>
+
+<!-- BOOKING -->
+
+<div style="
+    background:#f8fafc;
+    border:1px solid #e5e7eb;
+    border-radius:10px;
+    padding:18px;
+    margin:25px 0;
+">
+
+<p style="
+    margin:0 0 8px;
+    color:#374151;
+    font-size:14px;
+">
+<strong>Booking ID:</strong>
+${booking.booking_id}
+</p>
+
+<p style="
+    margin:0;
+    color:#374151;
+    font-size:14px;
+">
+<strong>Service:</strong>
+${booking.service_type}
+</p>
+
+</div>
+
+
+<p style="
+    color:#4b5563;
+    font-size:15px;
+    line-height:1.6;
+">
+Please provide the following OTP to confirm that your
+service has been completed:
+</p>
+
+
+<!-- OTP -->
+
+<div style="
+    margin:30px 0;
+    padding:22px;
+    background:#f0f6ff;
+    border:1px solid #c7ddff;
+    border-radius:10px;
+    text-align:center;
+">
+
+<p style="
+    margin:0 0 10px;
+    color:#6b7280;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+">
+Completion Verification Code
+</p>
+
+<div style="
+    font-size:32px;
+    font-weight:bold;
+    letter-spacing:8px;
+    color:#0b4ea2;
+">
+${otp}
+</div>
+
+</div>
+
+
+<p style="
+    color:#374151;
+    font-size:14px;
+    line-height:1.6;
+">
+
+This OTP will expire in
+<strong>5 minutes</strong>.
+
+</p>
+
+
+<p style="
+    color:#6b7280;
+    font-size:13px;
+    line-height:1.6;
+">
+
+<strong>Security:</strong>
+Only provide this OTP after you have verified that
+the service has been completed satisfactorily.
+
+</p>
+
+
+<hr style="
+    border:none;
+    border-top:1px solid #e5e7eb;
+    margin:30px 0;
+">
+
+
+<p style="
+    margin:0;
+    color:#6b7280;
+    font-size:13px;
+    line-height:1.6;
+">
+
+If you did not request service completion verification,
+please contact ServoraCare support.
+
+</p>
+
+</td>
+</tr>
+
+
+<!-- FOOTER -->
+
+<tr>
+<td style="
+    background:#f8fafc;
+    padding:22px 30px;
+    text-align:center;
+    border-top:1px solid #e5e7eb;
+">
+
+<p style="
+    margin:0 0 8px;
+    color:#0b4ea2;
+    font-size:14px;
+    font-weight:bold;
+">
+ServoraCare
+</p>
+
+<p style="
+    margin:0 0 8px;
+    color:#6b7280;
+    font-size:12px;
+">
+Services That Care
+</p>
+
+<p style="
+    margin:0;
+    color:#9ca3af;
+    font-size:11px;
+">
+© ${new Date().getFullYear()} ServoraCare.
+All rights reserved.
+</p>
+
+</td>
+</tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>
+            `
+        });
+
+
+        if (error) {
+
+            console.error(
+                "RESEND COMPLETION OTP ERROR:",
+                error
+            );
+
+            throw error;
+        }
+
+
+        console.log(
+            "COMPLETION OTP EMAIL SENT:",
+            data
+        );
+
+        return data;
+
+
+    } catch (error) {
+
+        console.error(
+            "COMPLETION OTP EMAIL ERROR:",
+            error
+        );
+
+        throw error;
+    }
+};
+
+// ==========================================
 // EXPORT ALL EMAIL FUNCTIONS
 // ==========================================
 
@@ -614,6 +925,8 @@ module.exports = {
 
     sendTechnicianAssignedEmail,
 
-    sendCustomerAssignedEmail
+    sendCustomerAssignedEmail,
+
+    sendCompletionOTP
 
 };

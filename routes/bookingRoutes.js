@@ -3,7 +3,7 @@ const router = express.Router();
 const generate6DigitId = require("../utils/generateId");
 const Booking = require("../models/Booking");
 const User = require("../models/User");
-const { sendNewBookingEmail } = require("../utils/sendOTP");
+const { sendNewBookingEmail, sendCompletionOTP } = require("../utils/sendOTP");
 const crypto = require("crypto");
 
 // ==========================================
@@ -529,47 +529,148 @@ router.post("/bookings/:id/request-completion-otp", async(req, res) => {
 
         const { id } = req.params;
 
+        // ==========================================
+        // FIND BOOKING
+        // ==========================================
+
         const booking = await Booking.findById(id);
 
         if (!booking) {
+
             return res.status(404).json({
                 success: false,
                 message: "Booking not found"
             });
+
         }
 
-        // Only accepted bookings can be completed
+
+        // ==========================================
+        // ONLY ACCEPTED BOOKINGS
+        // ==========================================
+
         if (booking.status !== "Accepted") {
+
             return res.status(400).json({
                 success: false,
                 message: "Only accepted bookings can be completed"
             });
+
         }
 
-        // Generate secure 6 digit OTP
+
+        // ==========================================
+        // FIND CUSTOMER
+        // ==========================================
+
+        const customer = await User.findById(
+            booking.user_id
+        );
+
+        if (!customer) {
+
+            return res.status(404).json({
+                success: false,
+                message: "Customer not found"
+            });
+
+        }
+
+
+        // ==========================================
+        // CHECK CUSTOMER EMAIL
+        // ==========================================
+
+        if (!customer.email) {
+
+            return res.status(400).json({
+                success: false,
+                message: "Customer email not found"
+            });
+
+        }
+
+
+        // ==========================================
+        // GENERATE 6 DIGIT OTP
+        // ==========================================
+
         const otp = crypto
             .randomInt(100000, 1000000)
             .toString();
 
-        // OTP valid for 5 minutes
+
+        // ==========================================
+        // OTP EXPIRES IN 5 MINUTES
+        // ==========================================
+
         const expires = new Date(
             Date.now() + 5 * 60 * 1000
         );
 
+
+        // ==========================================
+        // SAVE OTP
+        // ==========================================
+
         booking.completion_otp = otp;
+
         booking.completion_otp_expires = expires;
+
         booking.completion_otp_verified = false;
 
         await booking.save();
 
+
         console.log(
-            `Completion OTP for booking ${booking.booking_id}: ${otp}`
+            `Completion OTP generated for booking ${booking.booking_id}: ${otp}`
         );
 
-        res.json({
+
+        // ==========================================
+        // SEND EMAIL TO CUSTOMER
+        // ==========================================
+
+        try {
+
+            await sendCompletionOTP(
+                customer.email,
+                customer.name,
+                booking,
+                otp
+            );
+
+            console.log(
+                `Completion OTP email sent to ${customer.email}`
+            );
+
+        } catch (emailError) {
+
+            console.error(
+                "COMPLETION OTP EMAIL FAILED:",
+                emailError
+            );
+
+            return res.status(500).json({
+                success: false,
+                message: "OTP generated but email could not be sent"
+            });
+
+        }
+
+
+        // ==========================================
+        // RESPONSE
+        // ==========================================
+
+        return res.json({
+
             success: true,
-            message: "OTP generated successfully"
+
+            message: "Completion OTP sent to customer email"
+
         });
+
 
     } catch (error) {
 
@@ -578,9 +679,12 @@ router.post("/bookings/:id/request-completion-otp", async(req, res) => {
             error
         );
 
-        res.status(500).json({
+        return res.status(500).json({
+
             success: false,
+
             message: "Server error"
+
         });
 
     }
