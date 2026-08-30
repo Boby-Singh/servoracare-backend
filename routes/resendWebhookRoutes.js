@@ -1,9 +1,11 @@
 const express = require("express");
+const { Resend } = require("resend");
 const SupportEmail = require("../models/SupportEmail");
 
 const router = express.Router();
 
-// Resend inbound email webhook
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 router.post("/resend", async(req, res) => {
     try {
         const event = req.body;
@@ -11,9 +13,8 @@ router.post("/resend", async(req, res) => {
         console.log("=================================");
         console.log("RESEND WEBHOOK RECEIVED");
         console.log("=================================");
-        console.log(JSON.stringify(event, null, 2));
 
-        // Only process inbound emails
+        // Only process received emails
         if (event.type !== "email.received") {
             return res.status(200).json({
                 success: true,
@@ -23,7 +24,7 @@ router.post("/resend", async(req, res) => {
 
         const email = event.data;
 
-        // Check if this email was already saved
+        // Prevent duplicate emails
         const existingEmail = await SupportEmail.findOne({
             emailId: email.email_id,
         });
@@ -37,26 +38,42 @@ router.post("/resend", async(req, res) => {
             });
         }
 
-        // Save email to MongoDB
+        // Get the complete received email from Resend
+        const { data: receivedEmail, error } =
+        await resend.emails.receiving.get(email.email_id);
+
+        if (error) {
+            console.error("Failed to retrieve email:", error);
+
+            return res.status(500).json({
+                success: false,
+                message: "Could not retrieve received email",
+            });
+        }
+
+        // Save complete email to MongoDB
         const supportEmail = new SupportEmail({
             emailId: email.email_id,
             from: email.from,
             to: email.to || [],
             subject: email.subject || "",
             messageId: email.message_id || "",
+            text: receivedEmail ? receivedEmail.text : "",
+            html: receivedEmail ? receivedEmail.html : "",
             attachments: email.attachments || [],
             status: "new",
             receivedAt: email.created_at ?
-                new Date(email.created_at) :
-                new Date(),
+                new Date(email.created_at) : new Date(),
         });
+
+
 
         await supportEmail.save();
 
-        console.log("✅ Support email saved to MongoDB");
-        console.log("Email ID:", email.email_id);
+        console.log("Complete support email saved");
         console.log("From:", email.from);
         console.log("Subject:", email.subject);
+        console.log("Email ID:", email.email_id);
 
         return res.status(200).json({
             success: true,
@@ -64,7 +81,7 @@ router.post("/resend", async(req, res) => {
         });
 
     } catch (error) {
-        console.error("❌ Resend webhook error:", error);
+        console.error("Resend webhook error:", error);
 
         return res.status(500).json({
             success: false,
