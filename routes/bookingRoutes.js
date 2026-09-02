@@ -577,6 +577,192 @@ router.put("/update-status/:id",
     }
 );
 
+// =====================================================
+// TECHNICIAN ACCEPT / REJECT JOB
+// =====================================================
+
+router.put("/technician-response/:bookingId", async(req, res) => {
+    try {
+
+        const { bookingId } = req.params;
+
+        const {
+            technician_id,
+            response,
+            rejection_reason
+        } = req.body;
+
+        // =============================================
+        // VALIDATE BOOKING ID
+        // =============================================
+
+        if (!/^\d{6}$/.test(String(bookingId))) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid booking ID"
+            });
+        }
+
+        // =============================================
+        // VALIDATE TECHNICIAN
+        // =============================================
+
+        if (!technician_id) {
+            return res.status(400).json({
+                success: false,
+                message: "Technician ID is required"
+            });
+        }
+
+        // =============================================
+        // VALIDATE RESPONSE
+        // =============================================
+
+        if (
+            response !== "Accepted" &&
+            response !== "Rejected"
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid technician response"
+            });
+        }
+
+        // =============================================
+        // REJECTION REASON REQUIRED
+        // =============================================
+
+        if (response === "Rejected") {
+
+            if (!rejection_reason ||
+                rejection_reason.trim() === ""
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Rejection reason is required"
+                });
+            }
+
+            if (rejection_reason.trim().length > 500) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Rejection reason cannot exceed 500 characters"
+                });
+            }
+        }
+
+        // =============================================
+        // FIND BOOKING
+        // =============================================
+
+        const booking = await Booking.findOne({
+            booking_id: Number(bookingId)
+        });
+
+        if (!booking) {
+            return res.status(404).json({
+                success: false,
+                message: "Booking not found"
+            });
+        }
+
+        // =============================================
+        // VERIFY TECHNICIAN
+        // =============================================
+
+        if (!booking.technician_id ||
+            booking.technician_id.toString() !==
+            technician_id.toString()
+        ) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not assigned to this booking"
+            });
+        }
+
+        // =============================================
+        // ONLY PENDING TECHNICIAN RESPONSE
+        // =============================================
+
+        if (
+            booking.technician_response &&
+            booking.technician_response !== "Pending"
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: `This job has already been ${booking.technician_response.toLowerCase()}`
+            });
+        }
+
+        // =============================================
+        // ACCEPT JOB
+        // =============================================
+
+        if (response === "Accepted") {
+
+            booking.technician_response = "Accepted";
+
+            booking.status = "Accepted";
+
+            booking.technician_rejection_reason = "";
+
+            booking.technician_response_at = new Date();
+
+            booking.accepted_at = new Date();
+        }
+
+        // =============================================
+        // REJECT JOB
+        // =============================================
+
+        if (response === "Rejected") {
+
+            booking.technician_response = "Rejected";
+
+            // Keep booking Pending so admin can
+            // assign another technician.
+
+            booking.status = "Pending";
+
+            booking.technician_rejection_reason =
+                rejection_reason.trim();
+
+            booking.technician_response_at =
+                new Date();
+
+            booking.accepted_at = null;
+        }
+
+        // =============================================
+        // SAVE
+        // =============================================
+
+        await booking.save();
+
+        // =============================================
+        // RESPONSE
+        // =============================================
+
+        return res.json({
+            success: true,
+            message: response === "Accepted" ?
+                "Job accepted successfully" : "Job rejected successfully",
+            booking
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Technician Response Error:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to update technician response"
+        });
+    }
+});
 
 // =====================================================
 // MY BOOKINGS
