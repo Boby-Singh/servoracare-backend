@@ -3,7 +3,7 @@ const cors = require("cors")
 require("dotenv").config()
 process.env.TZ = "Asia/Kolkata";
 const connectDB = require("./config/db");
-
+const path = require("path");
 const bookingRoutes = require("./routes/bookingRoutes")
 const authRoutes = require("./routes/authRoutes")
 const adminRoutes = require("./routes/adminRoutes")
@@ -27,7 +27,10 @@ app.use(cors({
 }));
 
 app.use(express.json())
-
+app.use(
+    "/uploads",
+    express.static(path.join(__dirname, "uploads"))
+);
 app.use("/api", bookingRoutes)
 app.use("/api/auth", authRoutes)
 app.use("/api/admin", adminRoutes)
