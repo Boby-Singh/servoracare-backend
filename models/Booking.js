@@ -61,6 +61,24 @@ const bookingSchema = new mongoose.Schema({
 
     },
 
+    // ==========================================
+    // CUSTOMER LOCATION
+    // ==========================================
+
+    customer_location: {
+
+        latitude: {
+            type: Number,
+            required: true
+        },
+
+        longitude: {
+            type: Number,
+            required: true
+        }
+
+    },
+
 
     service_type: {
 
@@ -113,7 +131,26 @@ const bookingSchema = new mongoose.Schema({
         default: null
 
     },
+    technician_response: {
+        type: String,
+        enum: [
+            "Pending",
+            "Accepted",
+            "Rejected"
+        ],
+        default: "Pending"
+    },
 
+    technician_rejection_reason: {
+        type: String,
+        default: "",
+        trim: true
+    },
+
+    technician_response_at: {
+        type: Date,
+        default: null
+    },
 
     technician_comment: {
 

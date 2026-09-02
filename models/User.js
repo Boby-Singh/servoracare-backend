@@ -107,6 +107,27 @@ const userSchema = new mongoose.Schema({
 
     },
 
+    // ==========================================
+    // LOCATION
+    // ==========================================
+
+    location: {
+        latitude: {
+            type: Number,
+            default: null
+        },
+
+        longitude: {
+            type: Number,
+            default: null
+        },
+
+        updated_at: {
+            type: Date,
+            default: null
+        }
+    },
+
     created_at: {
         type: Date,
         default: Date.now

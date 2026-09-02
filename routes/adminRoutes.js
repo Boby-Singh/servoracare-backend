@@ -163,8 +163,7 @@ router.post("/add-technician", async(req, res) => {
 // ASSIGN TECHNICIAN
 // ==========================================
 
-router.put(
-    "/assign-technician/:bookingId",
+router.put("/assign-technician/:bookingId",
     async(req, res) => {
 
         try {
@@ -188,9 +187,7 @@ router.put(
             ) {
 
                 return res.status(400).json({
-
                     message: "Invalid 6-digit Booking ID"
-
                 });
 
             }
@@ -203,9 +200,7 @@ router.put(
             if (!technician_id) {
 
                 return res.status(400).json({
-
                     message: "Technician ID is required"
-
                 });
 
             }
@@ -217,20 +212,14 @@ router.put(
 
             const technician =
                 await User.findOne({
-
                     _id: technician_id,
-
                     role: "technician"
-
                 });
-
 
             if (!technician) {
 
                 return res.status(404).json({
-
                     message: "Technician Not Found"
-
                 });
 
             }
@@ -242,18 +231,13 @@ router.put(
 
             const booking =
                 await Booking.findOne({
-
                     booking_id: bookingId
-
                 });
-
 
             if (!booking) {
 
                 return res.status(404).json({
-
                     message: "Booking Not Found"
-
                 });
 
             }
@@ -268,13 +252,10 @@ router.put(
                     booking.user_id
                 );
 
-
             if (!customer) {
 
                 return res.status(404).json({
-
                     message: "Customer Not Found"
-
                 });
 
             }
@@ -293,12 +274,35 @@ router.put(
             booking.visit_time =
                 visit_time || null;
 
+
+            // ==========================================
+            // TECHNICIAN RESPONSE
+            // ==========================================
+            // Admin assignment does NOT mean
+            // technician has accepted the job.
+            //
+            // Technician must manually Accept or Reject.
+            // ==========================================
+
             booking.status =
-                "Accepted";
+                "Pending";
+
+            booking.technician_response =
+                "Pending";
+
+            booking.technician_rejection_reason =
+                "";
+
+            booking.technician_response_at =
+                null;
 
             booking.accepted_at =
-                new Date();
+                null;
 
+
+            // ==========================================
+            // SAVE BOOKING
+            // ==========================================
 
             await booking.save();
 
@@ -312,13 +316,9 @@ router.put(
                 try {
 
                     await sendTechnicianAssignedEmail(
-
                         technician.email,
-
                         technician.name,
-
                         booking
-
                     );
 
                     console.log(
@@ -347,17 +347,11 @@ router.put(
                 try {
 
                     await sendCustomerAssignedEmail(
-
                         customer.email,
-
                         customer.name,
-
                         booking,
-
                         technician.name,
-
                         technician.phone
-
                     );
 
                     console.log(
@@ -383,7 +377,7 @@ router.put(
 
             return res.json({
 
-                message: "Technician Assigned Successfully",
+                message: "Technician Assigned Successfully. Waiting for Technician Acceptance.",
 
                 booking
 
@@ -407,7 +401,6 @@ router.put(
 
     }
 );
-
 
 // ==========================================
 // GET CUSTOMERS
@@ -496,8 +489,7 @@ router.get("/customers",
 // GET TECHNICIANS
 // ==========================================
 
-router.get(
-    "/technicians",
+router.get("/technicians",
     async(req, res) => {
 
         try {
@@ -562,8 +554,7 @@ router.get(
 // GET ALL BOOKINGS
 // ==========================================
 
-router.get(
-    "/all-bookings",
+router.get("/all-bookings",
     async(req, res) => {
 
         try {
