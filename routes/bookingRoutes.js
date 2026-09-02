@@ -604,7 +604,7 @@ router.put("/technician-response/:bookingId", async(req, res) => {
         }
 
         // =============================================
-        // VALIDATE TECHNICIAN
+        // VALIDATE TECHNICIAN ID
         // =============================================
 
         if (!technician_id) {
@@ -629,7 +629,7 @@ router.put("/technician-response/:bookingId", async(req, res) => {
         }
 
         // =============================================
-        // REJECTION REASON REQUIRED
+        // VALIDATE REJECTION REASON
         // =============================================
 
         if (response === "Rejected") {
@@ -667,7 +667,7 @@ router.put("/technician-response/:bookingId", async(req, res) => {
         }
 
         // =============================================
-        // VERIFY TECHNICIAN
+        // VERIFY ASSIGNED TECHNICIAN
         // =============================================
 
         if (!booking.technician_id ||
@@ -681,7 +681,7 @@ router.put("/technician-response/:bookingId", async(req, res) => {
         }
 
         // =============================================
-        // ONLY PENDING TECHNICIAN RESPONSE
+        // PREVENT DOUBLE RESPONSE
         // =============================================
 
         if (
@@ -700,15 +700,47 @@ router.put("/technician-response/:bookingId", async(req, res) => {
 
         if (response === "Accepted") {
 
-            booking.technician_response = "Accepted";
+            const updatedBooking =
+                await Booking.findOneAndUpdate({
+                    booking_id: Number(bookingId),
+                    technician_id: technician_id,
+                    $or: [{
+                            technician_response: "Pending"
+                        },
+                        {
+                            technician_response: {
+                                $exists: false
+                            }
+                        },
+                        {
+                            technician_response: null
+                        }
+                    ]
+                }, {
+                    $set: {
+                        technician_response: "Accepted",
+                        status: "Accepted",
+                        technician_rejection_reason: "",
+                        technician_response_at: new Date(),
+                        accepted_at: new Date()
+                    }
+                }, {
+                    new: true,
+                    runValidators: true
+                });
 
-            booking.status = "Accepted";
+            if (!updatedBooking) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Job could not be accepted. It may have already been updated."
+                });
+            }
 
-            booking.technician_rejection_reason = "";
-
-            booking.technician_response_at = new Date();
-
-            booking.accepted_at = new Date();
+            return res.json({
+                success: true,
+                message: "Job accepted successfully",
+                booking: updatedBooking
+            });
         }
 
         // =============================================
@@ -717,49 +749,92 @@ router.put("/technician-response/:bookingId", async(req, res) => {
 
         if (response === "Rejected") {
 
-            booking.technician_response = "Rejected";
+            const updatedBooking =
+                await Booking.findOneAndUpdate({
+                    booking_id: Number(bookingId),
+                    technician_id: technician_id,
+                    $or: [{
+                            technician_response: "Pending"
+                        },
+                        {
+                            technician_response: {
+                                $exists: false
+                            }
+                        },
+                        {
+                            technician_response: null
+                        }
+                    ]
+                }, {
+                    $set: {
+                        technician_response: "Rejected",
 
-            // Keep booking Pending so admin can
-            // assign another technician.
+                        // IMPORTANT:
+                        // Keep booking Pending so admin
+                        // can assign another technician.
+                        status: "Pending",
 
-            booking.status = "Pending";
+                        technician_rejection_reason: rejection_reason.trim(),
 
-            booking.technician_rejection_reason =
-                rejection_reason.trim();
+                        technician_response_at: new Date(),
 
-            booking.technician_response_at =
-                new Date();
+                        accepted_at: null
+                    }
+                }, {
+                    new: true,
+                    runValidators: true
+                });
 
-            booking.accepted_at = null;
+            if (!updatedBooking) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Job could not be rejected. It may have already been updated."
+                });
+            }
+
+            return res.json({
+                success: true,
+                message: "Job rejected successfully",
+                booking: updatedBooking
+            });
         }
 
-        // =============================================
-        // SAVE
-        // =============================================
-
-        await booking.save();
-
-        // =============================================
-        // RESPONSE
-        // =============================================
-
-        return res.json({
-            success: true,
-            message: response === "Accepted" ?
-                "Job accepted successfully" : "Job rejected successfully",
-            booking
-        });
-
     } catch (error) {
+
+        // =============================================
+        // DETAILED SERVER ERROR
+        // =============================================
 
         console.error(
             "Technician Response Error:",
             error
         );
 
+        console.error(
+            "Error Name:",
+            error.name
+        );
+
+        console.error(
+            "Error Message:",
+            error.message
+        );
+
+        if (error.errors) {
+            console.error(
+                "Validation Errors:",
+                Object.keys(error.errors).map((key) => ({
+                    field: key,
+                    message: error.errors[key].message
+                }))
+            );
+        }
+
         return res.status(500).json({
             success: false,
-            message: "Failed to update technician response"
+            message: "Failed to update technician response",
+            error: process.env.NODE_ENV === "production" ?
+                undefined : error.message
         });
     }
 });
