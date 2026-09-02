@@ -9,7 +9,7 @@ const authRoutes = require("./routes/authRoutes")
 const adminRoutes = require("./routes/adminRoutes")
 const jobRoutes = require("./routes/jobRoutes");
 const resendWebhookRoutes = require("./routes/resendWebhookRoutes");
-
+const supportRoutes = require("./routes/supportRoutes");
 const app = express()
 
 connectDB();
@@ -33,7 +33,7 @@ app.use("/api/auth", authRoutes)
 app.use("/api/admin", adminRoutes)
 app.use("/api", jobRoutes);
 app.use("/api/webhooks", resendWebhookRoutes);
-
+app.use("/api/support-emails", supportRoutes);
 
 
 app.get("/", (req, res) => {
