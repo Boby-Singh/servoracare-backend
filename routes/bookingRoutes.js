@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const generate6DigitId = require("../utils/generateId");
-
+const mongoose = require("mongoose");
 const Booking = require("../models/Booking");
 const User = require("../models/User");
 
@@ -929,6 +929,14 @@ router.post("/bookings/:id/request-completion-otp",
         try {
             const { id } = req.params;
 
+            if (!mongoose.Types.ObjectId.isValid(id)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid booking ID"
+                });
+            }
+
+
             // =============================================
             // FIND BOOKING
             // =============================================
@@ -1008,10 +1016,11 @@ router.post("/bookings/:id/request-completion-otp",
                         completion_otp_verified: false
                     }
                 }, {
-                    new: true,
+                    returnDocument: "after",
                     runValidators: false
                 }
             );
+
             // =============================================
             // SEND EMAIL TO CUSTOMER
             // =============================================
@@ -1057,6 +1066,13 @@ router.post("/bookings/:id/verify-completion-otp",
         try {
             const { id } = req.params;
             const { otp } = req.body;
+
+            if (!mongoose.Types.ObjectId.isValid(id)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid booking ID"
+                });
+            }
 
             // =============================================
             // OTP REQUIRED
@@ -1146,7 +1162,7 @@ router.post("/bookings/:id/verify-completion-otp",
                         completion_otp_expires: ""
                     }
                 }, {
-                    new: true,
+                    returnDocument: "after",
                     runValidators: false
                 }
             );
