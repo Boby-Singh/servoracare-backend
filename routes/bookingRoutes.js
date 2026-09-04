@@ -1012,11 +1012,6 @@ router.post("/bookings/:id/request-completion-otp",
                     runValidators: false
                 }
             );
-
-            console.log(
-                `Completion OTP generated for booking ${booking.booking_id}: ${otp}`
-            );
-
             // =============================================
             // SEND EMAIL TO CUSTOMER
             // =============================================
@@ -1028,17 +1023,7 @@ router.post("/bookings/:id/request-completion-otp",
                     booking,
                     otp
                 );
-
-                console.log(
-                    `Completion OTP email sent to ${customer.email}`
-                );
-
             } catch (emailError) {
-                console.error(
-                    "COMPLETION OTP EMAIL FAILED:",
-                    emailError
-                );
-
                 return res.status(500).json({
                     success: false,
                     message: "OTP generated but email could not be sent"
@@ -1055,11 +1040,6 @@ router.post("/bookings/:id/request-completion-otp",
             });
 
         } catch (error) {
-            console.error(
-                "Completion OTP Error:",
-                error
-            );
-
             return res.status(500).json({
                 success: false,
                 message: "Server error"
@@ -1074,418 +1054,348 @@ router.post("/bookings/:id/request-completion-otp",
 
 router.post("/bookings/:id/verify-completion-otp",
     async(req, res) => {
-
         try {
-
-            const { id } =
-            req.params;
-
-            const { otp } =
-            req.body;
-
+            const { id } = req.params;
+            const { otp } = req.body;
 
             // =============================================
             // OTP REQUIRED
             // =============================================
 
             if (!otp) {
-
                 return res.status(400).json({
-
                     success: false,
-
                     message: "OTP is required"
-
                 });
-
             }
-
 
             // =============================================
             // FIND BOOKING
             // =============================================
 
-            const booking =
-                await Booking.findById(id);
-
+            const booking = await Booking.findById(id);
 
             if (!booking) {
-
                 return res.status(404).json({
-
                     success: false,
-
                     message: "Booking not found"
-
                 });
-
             }
-
 
             // =============================================
             // CHECK STATUS
             // =============================================
 
-            if (
-                booking.status !== "Accepted"
-            ) {
-
+            if (booking.status !== "Accepted") {
                 return res.status(400).json({
-
                     success: false,
-
                     message: "This booking cannot be completed"
-
                 });
-
             }
 
+            // =============================================
+            // CHECK OTP EXISTS
+            // =============================================
+
+            if (!booking.completion_otp) {
+                return res.status(400).json({
+                    success: false,
+                    message: "No completion OTP found. Please request a new OTP."
+                });
+            }
 
             // =============================================
             // CHECK OTP EXPIRY
             // =============================================
 
             if (!booking.completion_otp_expires ||
-                booking.completion_otp_expires <
-                new Date()
+                booking.completion_otp_expires < new Date()
             ) {
-
                 return res.status(400).json({
-
                     success: false,
-
                     message: "OTP has expired. Please request a new OTP."
-
                 });
-
             }
-
 
             // =============================================
             // CHECK OTP
             // =============================================
 
             if (
-                booking.completion_otp !==
-                otp.toString()
+                booking.completion_otp !== otp.toString().trim()
             ) {
-
                 return res.status(400).json({
-
                     success: false,
-
                     message: "Invalid OTP"
-
                 });
-
             }
 
-
             // =============================================
-            // OTP VERIFIED
-            // =============================================
-
-            booking.completion_otp_verified =
-                true;
-
-            booking.status =
-                "Completed";
-
-            booking.completed_at =
-                new Date();
-
-
-            // =============================================
-            // REMOVE OTP
+            // VERIFY OTP & COMPLETE BOOKING
             // =============================================
 
-            booking.completion_otp =
-                null;
-
-            booking.completion_otp_expires =
-                null;
-
-
-            await booking.save();
-
-
-            res.json({
-
-                success: true,
-
-                message: "Service completed successfully",
-
-                booking
-
-            });
-
-
-        } catch (error) {
-
-            console.error(
-
-                "Verify Completion OTP Error:",
-
-                error
-
+            const completedBooking = await Booking.findByIdAndUpdate(
+                booking._id, {
+                    $set: {
+                        completion_otp_verified: true,
+                        status: "Completed",
+                        completed_at: new Date()
+                    },
+                    $unset: {
+                        completion_otp: "",
+                        completion_otp_expires: ""
+                    }
+                }, {
+                    new: true,
+                    runValidators: false
+                }
             );
 
+            // =============================================
+            // CHECK UPDATE
+            // =============================================
 
-            res.status(500).json({
+            if (!completedBooking) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Booking could not be updated"
+                });
+            }
+            // =============================================
+            // RESPONSE
+            // =============================================
 
-                success: false,
-
-                message: "Server error"
-
+            return res.json({
+                success: true,
+                message: "Service completed successfully",
+                booking: completedBooking
             });
 
+        } catch (error) {
+            return res.status(500).json({
+                success: false,
+                message: "Server error"
+            });
         }
-
     }
 );
 
-
 // =====================================================
-// FIND NEARBY TECHNICIANS
+// FIND NEARBY TECHNICIANS FOR A BOOKING
 // =====================================================
 
 router.get("/nearby-technicians/:bookingId",
     async(req, res) => {
-
         try {
 
-            const { bookingId } =
-            req.params;
+            const { bookingId } = req.params;
 
+            // =====================================================
+            // VALIDATE BOOKING ID
+            // =====================================================
 
-            // =============================================
-            // FIND BOOKING
-            // =============================================
-
-            const booking =
-                await Booking.findById(
-                    bookingId
-                );
-
-
-            if (!booking) {
-
-                return res.status(404).json({
-
+            if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+                return res.status(400).json({
                     success: false,
-
-                    message: "Booking not found"
-
+                    message: "Invalid booking ID"
                 });
-
             }
 
+            // =====================================================
+            // FIND BOOKING
+            // =====================================================
 
-            // =============================================
+            const booking = await Booking.findById(
+                bookingId
+            ).select("customer_location");
+
+            if (!booking) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Booking not found"
+                });
+            }
+
+            // =====================================================
             // CHECK CUSTOMER LOCATION
-            // =============================================
+            // =====================================================
 
             const customerLocation =
                 booking.customer_location;
 
-
-            if (!customerLocation ||
-                customerLocation.latitude === null ||
-                customerLocation.longitude === null ||
-                customerLocation.latitude === undefined ||
-                customerLocation.longitude === undefined
-            ) {
-
+            if (!customerLocation) {
                 return res.status(400).json({
-
                     success: false,
-
                     message: "Customer location is not available"
-
                 });
-
             }
 
-
             const customerLat =
-                Number(
-                    customerLocation.latitude
-                );
+                Number(customerLocation.latitude);
 
             const customerLng =
-                Number(
-                    customerLocation.longitude
-                );
-
+                Number(customerLocation.longitude);
 
             if (!Number.isFinite(customerLat) ||
                 !Number.isFinite(customerLng)
             ) {
-
                 return res.status(400).json({
-
                     success: false,
-
                     message: "Invalid customer location"
-
                 });
-
             }
 
+            // =====================================================
+            // VALIDATE LATITUDE / LONGITUDE RANGE
+            // =====================================================
 
-            // =============================================
+            if (
+                customerLat < -90 ||
+                customerLat > 90 ||
+                customerLng < -180 ||
+                customerLng > 180
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Customer location coordinates are out of range"
+                });
+            }
+
+            // =====================================================
             // MAXIMUM SEARCH RADIUS
-            // =============================================
+            // =====================================================
 
             const MAX_DISTANCE_KM = 20;
 
-
-            // =============================================
+            // =====================================================
             // GET TECHNICIANS
-            // =============================================
+            // =====================================================
 
-            const technicians =
-                await User.find({
+            const technicians = await User.find({
+                role: "technician",
 
-                    role: "technician",
+                "location.latitude": {
+                    $exists: true,
+                    $ne: null
+                },
 
-                    "location.latitude": {
-                        $ne: null
-                    },
+                "location.longitude": {
+                    $exists: true,
+                    $ne: null
+                }
 
-                    "location.longitude": {
-                        $ne: null
-                    }
+            }).select(
+                "name email phone employee_code location"
+            );
 
-                }).select(
-                    "name email phone employee_code location"
+            // =====================================================
+            // HAVERSINE DISTANCE FUNCTION
+            // =====================================================
+
+            const toRadians = (degrees) => {
+                return degrees * Math.PI / 180;
+            };
+
+            const calculateDistance = (
+                lat1,
+                lon1,
+                lat2,
+                lon2
+            ) => {
+
+                const R = 6371;
+
+                const dLat = toRadians(
+                    lat2 - lat1
                 );
 
+                const dLon = toRadians(
+                    lon2 - lon1
+                );
 
-            // =============================================
-            // HAVERSINE DISTANCE FUNCTION
-            // =============================================
-
-            const toRadians =
-                (degrees) => {
-
-                    return (
-                        degrees *
-                        Math.PI /
-                        180
-                    );
-
-                };
-
-
-            const calculateDistance =
-                (
-                    lat1,
-                    lon1,
-                    lat2,
-                    lon2
-                ) => {
-
-                    const R = 6371;
-
-
-                    const dLat =
-                        toRadians(
-                            lat2 - lat1
-                        );
-
-
-                    const dLon =
-                        toRadians(
-                            lon2 - lon1
-                        );
-
-
-                    const a =
-
-                        Math.sin(
-                            dLat / 2
-                        ) *
-                        Math.sin(
-                            dLat / 2
-                        )
-
-                    +
+                const a =
+                    Math.sin(dLat / 2) *
+                    Math.sin(dLat / 2) +
 
                     Math.cos(
                         toRadians(lat1)
-                    )
-
-                    *
+                    ) *
 
                     Math.cos(
                         toRadians(lat2)
-                    )
+                    ) *
 
-                    *
+                    Math.sin(dLon / 2) *
+                    Math.sin(dLon / 2);
 
-                    Math.sin(
-                        dLon / 2
-                    )
-
-                    *
-
-                    Math.sin(
-                        dLon / 2
+                const c =
+                    2 *
+                    Math.atan2(
+                        Math.sqrt(a),
+                        Math.sqrt(1 - a)
                     );
 
+                return R * c;
+            };
 
-                    const c =
-                        2 *
-                        Math.atan2(
-                            Math.sqrt(a),
-                            Math.sqrt(1 - a)
-                        );
-
-
-                    return R * c;
-
-                };
-
-
-            // =============================================
+            // =====================================================
             // CALCULATE DISTANCES
-            // =============================================
+            // =====================================================
 
-            const nearbyTechnicians =
-
-                technicians
+            const nearbyTechnicians = technicians
 
                 .map((technician) => {
+
+                if (!technician.location) {
+                    return null;
+                }
 
                 const technicianLat =
                     Number(
                         technician.location.latitude
                     );
 
-
                 const technicianLng =
                     Number(
                         technician.location.longitude
                     );
 
+                // -------------------------------------------------
+                // IGNORE INVALID TECHNICIAN LOCATION
+                // -------------------------------------------------
+
+                if (!Number.isFinite(technicianLat) ||
+                    !Number.isFinite(technicianLng)
+                ) {
+                    return null;
+                }
+
+                // -------------------------------------------------
+                // VALIDATE TECHNICIAN COORDINATES
+                // -------------------------------------------------
+
+                if (
+                    technicianLat < -90 ||
+                    technicianLat > 90 ||
+                    technicianLng < -180 ||
+                    technicianLng > 180
+                ) {
+                    return null;
+                }
+
+                // -------------------------------------------------
+                // CALCULATE DISTANCE
+                // -------------------------------------------------
 
                 const distance =
                     calculateDistance(
-
                         customerLat,
-
                         customerLng,
-
                         technicianLat,
-
                         technicianLng
-
                     );
 
-
                 return {
-
                     _id: technician._id,
 
                     name: technician.name,
@@ -1503,72 +1413,66 @@ router.get("/nearby-technicians/:bookingId",
                     distance_km: Number(
                         distance.toFixed(2)
                     )
-
                 };
 
             })
 
+            // Remove invalid technicians
+            .filter(
+                (technician) =>
+                technician !== null
+            )
+
+            // Only technicians within 20 km
             .filter(
                 (technician) =>
                 technician.distance_km <=
                 MAX_DISTANCE_KM
             )
 
+            // Nearest technician first
             .sort(
                 (a, b) =>
                 a.distance_km -
                 b.distance_km
             );
 
-
-            // =============================================
+            // =====================================================
             // RESPONSE
-            // =============================================
+            // =====================================================
 
-            return res.json({
+            return res.status(200).json({
 
                 success: true,
+
+                message: nearbyTechnicians.length > 0 ?
+                    "Nearby technicians found" : "No technicians found within the search radius",
 
                 radius_km: MAX_DISTANCE_KM,
 
                 customer_location: {
-
                     latitude: customerLat,
-
                     longitude: customerLng
-
                 },
 
                 count: nearbyTechnicians.length,
 
                 technicians: nearbyTechnicians
-
             });
-
 
         } catch (error) {
 
             console.error(
-
                 "Nearby Technicians Error:",
-
                 error
-
             );
 
-
             return res.status(500).json({
-
                 success: false,
-
                 message: "Failed to find nearby technicians"
-
             });
-
         }
-
     }
 );
-
 
 module.exports = router;
