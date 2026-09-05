@@ -13,45 +13,6 @@ const {
 
 const crypto = require("crypto");
 
-
-// =====================================================
-// CREATE PAYMENT
-// =====================================================
-
-router.post("/create-payment", async(req, res) => {
-
-    try {
-
-        const { bookingId, amount } = req.body;
-
-        const upiId = "7828908522@axl";
-
-        const paymentUrl =
-            `upi://pay?pa=${encodeURIComponent(upiId)}` +
-            `&pn=${encodeURIComponent("ServoraCare")}` +
-            `&tn=${encodeURIComponent("Service Booking")}` +
-            `&am=${amount}` +
-            `&cu=INR`;
-
-        res.json({
-            success: true,
-            paymentUrl
-        });
-
-    } catch (err) {
-
-        console.error("Payment Error:", err);
-
-        res.status(500).json({
-            success: false,
-            message: "Payment creation failed"
-        });
-
-    }
-
-});
-
-
 // =====================================================
 // CREATE BOOKING
 // =====================================================

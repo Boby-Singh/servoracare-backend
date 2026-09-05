@@ -117,6 +117,57 @@ const bookingSchema = new mongoose.Schema({
 
     },
 
+    // =====================================================
+    // PAYMENT STATUS
+    // =====================================================
+    payment_status: {
+        type: String,
+        enum: [
+            "Unpaid",
+            "Submitted",
+            "Paid",
+            "Rejected",
+        ],
+        default: "Unpaid",
+        index: true,
+    },
+    // =====================================================
+    // PAYMENT INFORMATION
+    // =====================================================
+
+    payment_reference: {
+        type: String,
+        trim: true,
+        default: null,
+    },
+
+    payment_utr: {
+        type: String,
+        trim: true,
+        default: null,
+    },
+
+    payment_submitted_at: {
+        type: Date,
+        default: null,
+    },
+
+    payment_verified_at: {
+        type: Date,
+        default: null,
+    },
+
+    payment_rejected_at: {
+        type: Date,
+        default: null,
+    },
+
+    payment_rejection_reason: {
+        type: String,
+        trim: true,
+        default: null,
+    },
+
 
     // ==========================================
     // TECHNICIAN
