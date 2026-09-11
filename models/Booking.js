@@ -210,6 +210,11 @@ const bookingSchema = new mongoose.Schema({
         default: ""
 
     },
+    rejection_type: {
+        type: String,
+        enum: ["technician", "admin"],
+        default: null
+    },
 
     rejection_reason: {
         type: String,

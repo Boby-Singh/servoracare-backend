@@ -10,7 +10,7 @@ const Booking = require("../models/Booking");
 // UPI CONFIGURATION
 // =====================================================
 
-const UPI_ID = "7828908522@axl";
+const UPI_ID = "servoracarepay@axl";
 const UPI_NAME = "ServoraCare";
 
 
@@ -153,8 +153,6 @@ router.post("/create-payment", async(req, res) => {
       paymentUrl,
     });
   } catch (error) {
-    console.error("CREATE PAYMENT ERROR:", error);
-
     return res.status(500).json({
       success: false,
       message: "Payment creation failed",
