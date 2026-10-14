@@ -191,14 +191,14 @@ const userSchema = new mongoose.Schema({
 
     address: {
         type: String,
-        default: null,
+        default: "",
         trim: true,
         maxlength: 500,
     },
 
     city: {
         type: String,
-        default: null,
+        default: "",
         trim: true,
         maxlength: 100,
     },
@@ -206,6 +206,7 @@ const userSchema = new mongoose.Schema({
     specialization: {
         type: String,
         enum: [
+            "",
             "Electrician",
             "Plumber",
             "AC Technician",
@@ -214,12 +215,10 @@ const userSchema = new mongoose.Schema({
             "Cleaning Professional",
             "Multi-skilled Technician",
             "Other",
-            null,
         ],
-        default: null,
+        default: "",
         trim: true,
     },
-
     // ==========================================
     // PROFILE DOCUMENTS
     // ==========================================

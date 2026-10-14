@@ -12,6 +12,7 @@ const { sendTechnicianAssignedEmail, sendCustomerAssignedEmail } = require("../u
 // ADD TECHNICIAN
 // ==========================================
 
+
 router.post("/add-technician", async(req, res) => {
 
     try {
@@ -21,7 +22,10 @@ router.post("/add-technician", async(req, res) => {
             email,
             password,
             employee_code,
-            phone
+            phone,
+            address,
+            city,
+            specialization,
         } = req.body;
 
 
@@ -29,7 +33,10 @@ router.post("/add-technician", async(req, res) => {
             !email ||
             !password ||
             !employee_code ||
-            !phone
+            !phone ||
+            !address ||
+            !city ||
+            !specialization
         ) {
 
             return res.status(400).json({
@@ -38,13 +45,14 @@ router.post("/add-technician", async(req, res) => {
 
         }
 
-
+        const normalizedEmail = email.trim().toLowerCase();
+        const normalizedEmployeeCode = employee_code.trim().toUpperCase();
         // ==========================================
         // CHECK EMAIL
         // ==========================================
 
         const existingUser = await User.findOne({
-            email: email.toLowerCase().trim()
+            email: normalizedEmail
         });
 
 
@@ -63,7 +71,7 @@ router.post("/add-technician", async(req, res) => {
 
         const existingEmployee =
             await User.findOne({
-                employee_code
+                employee_code: normalizedEmployeeCode
             });
 
 
@@ -111,9 +119,13 @@ router.post("/add-technician", async(req, res) => {
 
                 role: "technician",
 
-                employee_code,
+                employee_code: normalizedEmployeeCode,
 
-                phone
+                phone,
+                // Newly added technician details
+                address: address.trim(),
+                city: city.trim(),
+                specialization,
 
             });
 
@@ -136,7 +148,11 @@ router.post("/add-technician", async(req, res) => {
 
                 employee_code: technician.employee_code,
 
-                phone: technician.phone
+                phone: technician.phone,
+
+                address: technician.address,
+                city: technician.city,
+                specialization: technician.specialization,
 
             }
 
@@ -502,7 +518,7 @@ router.get("/technicians",
                 })
 
             .select(
-                "user_id name email employee_code phone"
+                "user_id name email employee_code phone address city specialization"
             )
 
             .sort({
@@ -524,7 +540,10 @@ router.get("/technicians",
 
                         employee_code: technician.employee_code,
 
-                        phone: technician.phone
+                        phone: technician.phone,
+                        address: technician.address,
+                        city: technician.city,
+                        specialization: technician.specialization,
 
                     })
                 );
