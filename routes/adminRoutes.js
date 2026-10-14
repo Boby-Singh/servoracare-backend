@@ -44,6 +44,8 @@ router.post("/add-technician", async(req, res) => {
             });
 
         }
+        const normalizedAddress = address.trim();
+        const normalizedCity = city.trim();
 
         const normalizedEmail = email.trim().toLowerCase();
         const normalizedEmployeeCode = employee_code.trim().toUpperCase();
@@ -123,8 +125,8 @@ router.post("/add-technician", async(req, res) => {
 
                 phone,
                 // Newly added technician details
-                address: address.trim(),
-                city: city.trim(),
+                address: normalizedAddress,
+                city: normalizedCity,
                 specialization,
 
             });
