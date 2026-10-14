@@ -222,6 +222,27 @@ const sendOTP = async(email, otp) => {
         </tr>
     </table>
 
+    <!-- System Generated Email Notice -->
+    <p style="
+        margin: 20px 0 0;
+        padding: 15px 10px;
+        border-top: 1px solid #e5e7eb;
+        color: #6b7280;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 12px;
+        line-height: 1.6;
+        text-align: center;
+    ">
+        <strong>Note:</strong> This is a system-generated email.
+        Please do not reply to this email, as this inbox is not monitored.
+        <br>
+        For assistance, please contact
+        <a href="mailto:support@servoracare.in"
+        style="color: #0b4ea2; text-decoration: none;">
+            ServoraCare Support
+        </a>.
+    </p>
+
 </body>
 </html>
             `
@@ -319,6 +340,26 @@ const sendNewBookingEmail = async(adminEmail, booking) => {
                     </p>
 
                 </div>
+                <!-- System Generated Email Notice -->
+                <p style="
+                    margin: 20px 0 0;
+                    padding: 15px 10px;
+                    border-top: 1px solid #e5e7eb;
+                    color: #6b7280;
+                    font-family: Arial, Helvetica, sans-serif;
+                    font-size: 12px;
+                    line-height: 1.6;
+                    text-align: center;
+                ">
+                    <strong>Note:</strong> This is a system-generated email.
+                    Please do not reply to this email, as this inbox is not monitored.
+                    <br>
+                    For assistance, please contact
+                    <a href="mailto:support@servoracare.in"
+                    style="color: #0b4ea2; text-decoration: none;">
+                        ServoraCare Support
+                    </a>.
+                </p>
 
             `
         });
@@ -444,6 +485,27 @@ const sendTechnicianAssignedEmail = async(
 
                 </div>
 
+                <!-- System Generated Email Notice -->
+                <p style="
+                    margin: 20px 0 0;
+                    padding: 15px 10px;
+                    border-top: 1px solid #e5e7eb;
+                    color: #6b7280;
+                    font-family: Arial, Helvetica, sans-serif;
+                    font-size: 12px;
+                    line-height: 1.6;
+                    text-align: center;
+                ">
+                    <strong>Note:</strong> This is a system-generated email.
+                    Please do not reply to this email, as this inbox is not monitored.
+                    <br>
+                    For assistance, please contact
+                    <a href="mailto:support@servoracare.in"
+                    style="color: #0b4ea2; text-decoration: none;">
+                        ServoraCare Support
+                    </a>.
+                </p>
+
             `
         });
 
@@ -564,6 +626,26 @@ const sendCustomerAssignedEmail = async(
                     </p>
 
                 </div>
+                <!-- System Generated Email Notice -->
+                <p style="
+                    margin: 20px 0 0;
+                    padding: 15px 10px;
+                    border-top: 1px solid #e5e7eb;
+                    color: #6b7280;
+                    font-family: Arial, Helvetica, sans-serif;
+                    font-size: 12px;
+                    line-height: 1.6;
+                    text-align: center;
+                ">
+                    <strong>Note:</strong> This is a system-generated email.
+                    Please do not reply to this email, as this inbox is not monitored.
+                    <br>
+                    For assistance, please contact
+                    <a href="mailto:support@servoracare.in"
+                    style="color: #0b4ea2; text-decoration: none;">
+                        ServoraCare Support
+                    </a>.
+                </p>
 
             `
         });
@@ -876,6 +958,26 @@ All rights reserved.
 </td>
 </tr>
 </table>
+<!-- System Generated Email Notice -->
+<p style="
+    margin: 20px 0 0;
+    padding: 15px 10px;
+    border-top: 1px solid #e5e7eb;
+    color: #6b7280;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    line-height: 1.6;
+    text-align: center;
+">
+    <strong>Note:</strong> This is a system-generated email.
+    Please do not reply to this email, as this inbox is not monitored.
+    <br>
+    For assistance, please contact
+    <a href="mailto:support@servoracare.in"
+       style="color: #0b4ea2; text-decoration: none;">
+        ServoraCare Support
+    </a>.
+</p>
 
 </body>
 </html>
