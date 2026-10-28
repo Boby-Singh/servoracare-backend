@@ -11,6 +11,7 @@ const jobRoutes = require("./routes/jobRoutes");
 const resendWebhookRoutes = require("./routes/resendWebhookRoutes");
 const supportRoutes = require("./routes/supportRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+const blogRoutes = require("./routes/blogRoutes");
 const app = express()
 
 connectDB();
@@ -39,6 +40,9 @@ app.use("/api", jobRoutes);
 app.use("/api/webhooks", resendWebhookRoutes);
 app.use("/api/support-emails", supportRoutes);
 app.use("/api", paymentRoutes);
+
+// Keep your existing middleware and route mounts.
+app.use("/api/blog", blogRoutes);
 
 app.get("/", (req, res) => {
     res.send("ServoraCare API Running")
